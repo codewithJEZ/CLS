@@ -1,0 +1,10 @@
+feat: connect user side to backend + add recommended building feature
+
+- removed mock data and connected API (buildings, facilities, assistance)
+- implemented recommended (featured) buildings logic
+- user sidebar now displays only featured buildings
+- added empty state when no featured buildings
+- improved UI layout and footer with admin access
+- updated admin dashboard with featured toggle (checkbox + badge + button)
+- included is_featured field in backend integration
+- fixed filtering logic issue in user sidebar

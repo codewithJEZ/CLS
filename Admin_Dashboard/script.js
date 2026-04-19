@@ -114,6 +114,7 @@ document.addEventListener('keydown', (e) => {
 function openAddBuilding() {
   editingBuildingId = null;
   document.getElementById('formBuilding').reset();
+  document.getElementById('buildingFeatured').checked = false;
   // Update modal title to show "Add"
   document.querySelector('#buildingModal .modal-title').innerHTML =
     '<i class="bi bi-building-fill me-2"></i>Add Building';
@@ -121,14 +122,15 @@ function openAddBuilding() {
 }
 
 /**
- * openEditBuilding(id, name, code, description)
+ * openEditBuilding(id, name, code, description, isFeatured)
  * Pre-fills the building form with existing data and sets mode to EDIT.
  */
-function openEditBuilding(id, name, code, description) {
+function openEditBuilding(id, name, code, description, isFeatured) {
   editingBuildingId = id;
   document.getElementById('buildingName').value        = name;
   document.getElementById('buildingCode').value        = code;
   document.getElementById('buildingDescription').value = description !== '—' ? description : '';
+  document.getElementById('buildingFeatured').checked  = isFeatured === 1 || isFeatured === true;
   // Update modal title to show "Edit"
   document.querySelector('#buildingModal .modal-title').innerHTML =
     '<i class="bi bi-building-fill me-2"></i>Edit Building';
@@ -205,6 +207,20 @@ async function loadBuildings() {
     tbody.innerHTML = '';
 
     json.data.forEach(b => {
+      // is_featured: 1 = featured, 0 = not featured
+      const featured   = b.is_featured == 1;
+      const featuredBadge = featured
+        ? `<span class="badge-featured"><i class="bi bi-star-fill"></i> Recommended</span>`
+        : `<span class="badge-not-featured"><i class="bi bi-star"></i> None</span>`;
+
+      const toggleBtn = featured
+        ? `<button class="btn-feature remove" onclick="toggleFeatured(${b.id}, 0)">
+             <i class="bi bi-star-slash"></i> Remove
+           </button>`
+        : `<button class="btn-feature" onclick="toggleFeatured(${b.id}, 1)">
+             <i class="bi bi-star-fill"></i> Set Featured
+           </button>`;
+
       const tr = document.createElement('tr');
       tr.dataset.id = b.id;
       tr.innerHTML = `
@@ -212,11 +228,13 @@ async function loadBuildings() {
         <td>${escHtml(b.name)}</td>
         <td>${escHtml(b.code)}</td>
         <td>${escHtml(b.description || '—')}</td>
+        <td>${featuredBadge}</td>
         <td class="action-btns">
           <button class="btn-edit"
-            onclick="openEditBuilding(${b.id}, '${escJs(b.name)}', '${escJs(b.code)}', '${escJs(b.description || '')}')">
+            onclick="openEditBuilding(${b.id}, '${escJs(b.name)}', '${escJs(b.code)}', '${escJs(b.description || '')}', ${b.is_featured})">
             <i class="bi bi-pencil-fill"></i> Edit
           </button>
+          ${toggleBtn}
           <button class="btn-delete" onclick="confirmDelete(this, 'buildings', ${b.id})">
             <i class="bi bi-trash-fill"></i> Delete
           </button>
@@ -360,6 +378,8 @@ async function handleBuildingForm(e) {
   const name        = document.getElementById('buildingName').value.trim();
   const code        = document.getElementById('buildingCode').value.trim();
   const description = document.getElementById('buildingDescription').value.trim();
+  // Capture featured checkbox: sends 1 (true) or 0 (false) — matches DB tinyint(1)
+  const is_featured = document.getElementById('buildingFeatured').checked ? 1 : 0;
 
   if (!name || !code) {
     showToast('Building name and code are required.');
@@ -375,13 +395,14 @@ async function handleBuildingForm(e) {
     const res  = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, code, description })
+      body:    JSON.stringify({ name, code, description, is_featured })
     });
     const json = await res.json();
 
     if (json.success) {
       closeModal('buildingModal');
       document.getElementById('formBuilding').reset();
+      document.getElementById('buildingFeatured').checked = false;
       editingBuildingId = null;
       showToast(isEditing ? 'Building updated successfully.' : 'Building saved successfully.');
       loadBuildings();
@@ -390,6 +411,43 @@ async function handleBuildingForm(e) {
     }
   } catch (err) {
     console.error('❌ Building form error:', err);
+    showToast('Could not connect to server.');
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   TOGGLE FEATURED — BUILDINGS
+   ════════════════════════════════════════════════════════════ */
+
+/**
+ * toggleFeatured(id, value)
+ * Sends a PATCH request to update is_featured for a building.
+ * value: 1 = set as featured,  0 = remove featured
+ *
+ * TODO: Backend needs PATCH /buildings/:id/featured route.
+ * For now, logs to console and updates the UI optimistically.
+ *
+ * @param {number} id    - Building ID
+ * @param {number} value - 1 or 0
+ */
+async function toggleFeatured(id, value) {
+  try {
+    const res  = await fetch(`${API_BASE}/buildings/${id}/featured`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ is_featured: value })
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      showToast(value === 1 ? '⭐ Marked as Recommended.' : 'Removed from Recommended.');
+      loadBuildings(); // refresh table to show updated badge + button
+    } else {
+      showToast(json.message || 'Failed to update featured status.');
+    }
+  } catch (err) {
+    console.error('❌ toggleFeatured error:', err);
     showToast('Could not connect to server.');
   }
 }

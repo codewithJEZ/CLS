@@ -8,6 +8,104 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Featured checkbox in Building form ── */
+    .featured-checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 10px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      transition: border-color .2s, background .2s;
+      user-select: none;
+    }
+    .featured-checkbox-wrap:hover {
+      border-color: #F6AC02;
+      background: #fffbf0;
+    }
+    .featured-checkbox-wrap input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #F6AC02;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .featured-checkbox-wrap input[type="checkbox"]:checked + .featured-checkbox-label {
+      color: #b07d00;
+      font-weight: 600;
+    }
+    .featured-checkbox-label {
+      font-size: .9rem;
+      color: #4b5563;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .featured-checkbox-label .bi-star-fill {
+      color: #F6AC02;
+      font-size: .95rem;
+    }
+    .form-hint {
+      font-size: .78rem;
+      color: #9ca3af;
+      margin: 5px 0 0;
+    }
+
+    /* ── Featured badge in the table ── */
+    .badge-featured {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      background: #fffbeb;
+      color: #92610a;
+      border: 1px solid #fde68a;
+      white-space: nowrap;
+    }
+    .badge-featured .bi { font-size: .8rem; color: #F6AC02; }
+
+    .badge-not-featured {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 500;
+      background: #f9fafb;
+      color: #9ca3af;
+      border: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+
+    /* ── Toggle featured button ── */
+    .btn-feature {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: .78rem;
+      font-weight: 600;
+      border: 1.5px solid #fde68a;
+      background: #fffbeb;
+      color: #92610a;
+      cursor: pointer;
+      transition: background .18s, border-color .18s;
+    }
+    .btn-feature:hover { background: #fef3c7; border-color: #F6AC02; }
+    .btn-feature.remove {
+      border-color: #e5e7eb;
+      background: #f9fafb;
+      color: #6b7280;
+    }
+    .btn-feature.remove:hover { background: #f3f4f6; border-color: #d1d5db; }
+  </style>
 </head>
 <body>
 
@@ -172,6 +270,7 @@
                 <th>Building Name</th>
                 <th>Code</th>
                 <th>Description</th>
+                <th>Featured</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -301,6 +400,16 @@
           <div class="form-group">
             <label class="form-lbl" for="buildingDescription">Description</label>
             <textarea id="buildingDescription" name="description" class="form-inp form-ta" placeholder="Brief description..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-lbl">Recommended Building</label>
+            <label class="featured-checkbox-wrap">
+              <input type="checkbox" id="buildingFeatured" name="is_featured" />
+              <span class="featured-checkbox-label">
+                <i class="bi bi-star-fill"></i> Mark as Recommended Building
+              </span>
+            </label>
+            <p class="form-hint">Recommended buildings are highlighted to users in the locator app.</p>
           </div>
         </div>
         <div class="modal-footer">
