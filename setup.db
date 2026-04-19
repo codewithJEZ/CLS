@@ -1,0 +1,84 @@
+-- ============================================
+-- DATABASE: campus_locator
+-- ============================================
+
+CREATE DATABASE IF NOT EXISTS campus_locator;
+USE campus_locator;
+
+-- ============================================
+-- TABLE: admins
+-- ============================================
+
+CREATE TABLE admins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SAMPLE ADMIN 
+INSERT INTO admins (username, password)
+VALUES (
+    'admin',
+    'temp123'
+);
+
+-- ============================================
+-- TABLE: buildings
+-- ============================================
+
+CREATE TABLE buildings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    description TEXT,
+    is_featured BOOLEAN DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SAMPLE BUILDINGS
+INSERT INTO buildings (name, code, description, is_featured) VALUES
+('Main Building', 'MB', 'Main administrative building', 1),
+('MIS Building', 'MIS', 'IT and computer labs', 1),
+('Library', 'LIB', 'Main library facility', 1),
+('Gymnasium', 'GYM', 'Sports and physical education', 1);
+
+-- ============================================
+-- TABLE: facilities
+-- ============================================
+
+CREATE TABLE facilities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    building_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    type VARCHAR(100),
+    description TEXT,
+    floor VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE
+);
+
+-- SAMPLE FACILITIES
+INSERT INTO facilities (building_id, name, type, description, floor) VALUES
+(1, 'Registrar', 'Office', 'Handles student records', 'Ground Floor'),
+(1, 'Cashier', 'Office', 'Handles payments', 'Ground Floor'),
+(2, 'Computer Lab', 'Laboratory', 'For IT students', '2nd Floor'),
+(3, 'Reading Room', 'Study Area', 'Quiet study area', '2nd Floor');
+
+-- ============================================
+-- TABLE: assistance
+-- ============================================
+
+CREATE TABLE assistance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    building_id INT NOT NULL,
+    question VARCHAR(255) NOT NULL,
+    answer TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE
+);
+
+-- SAMPLE ASSISTANCE
+INSERT INTO assistance (building_id, question, answer) VALUES
+(1, 'Where is the registrar?', 'The registrar is located in the Main Building.'),
+(3, 'Where can I study?', 'You can study at the Library reading room.');
