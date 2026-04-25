@@ -43,15 +43,21 @@ async function loadBuildings() {
 
     // ── 4. Map buildings → attach facilities + recommended ──
     BUILDINGS = bJson.data.map(b => ({
-      id: String(b.id),          // keep as string to match SVG element IDs
-      name: b.name,
-      desc: b.description || '',
-      // Strictly check for integer 1 — handles NULL, undefined, 0, "0" all as false
+      id:          String(b.id),
+      name:        b.name,
+      // svgId: the SVG uses the building NAME as the element id (e.g. id="UNIVERSITY MUSEUM")
+      // We normalize both sides to uppercase + trimmed for a reliable match.
+      svgId:       b.name.trim().toUpperCase(),
+      desc:        b.description || '',
       recommended: Number(b.is_featured) === 1,
-      facilities: allFacilities
+      facilities:  allFacilities
         .filter(f => f.building_id == b.id)
         .map(f => ({
-          name: f.name,
+          name:        f.name,
+          type:        f.type        || '',
+          floor:       f.floor       || '',
+          description: f.description || '',
+          // Combined short desc still used by search
           desc: `${f.type}${f.floor ? ' · ' + f.floor : ''}${f.description ? ' — ' + f.description : ''}`,
           icon: facilityIcon(f.type)
         }))
@@ -136,8 +142,11 @@ const clearAnswerBtn = document.getElementById("clearAnswerBtn");
 
 const buildingModalEl = document.getElementById("buildingModal");
 const assistantModalEl = document.getElementById("assistantModal");
+const facilityDetailModalEl = document.getElementById("facilityDetailModal");
 const buildingModal = new bootstrap.Modal(buildingModalEl);
 const assistantModal = new bootstrap.Modal(assistantModalEl);
+// facilityDetailModal has no backdrop so building modal stays visible underneath
+const facilityDetailModal = new bootstrap.Modal(facilityDetailModalEl, { backdrop: false });
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -197,25 +206,40 @@ function handleSVGLoad() {
 }
 
 function attachBuildingClickEvents(svg) {
-  if (!BUILDINGS.length) return;
+  const buildings = svg.querySelectorAll('.building-shape');
+  console.log("FOUND building shapes:", buildings.length);
 
-  BUILDINGS.forEach(b => {
-    const el = svg.getElementById(b.id);
-    if (!el) return;
+  buildings.forEach(el => {
+    el.style.cursor      = "pointer";
+    el.style.pointerEvents = "bounding-box";
 
-    el.classList.add("building-shape");
-    el.style.cursor = "pointer";
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
 
-    el.addEventListener("click", () => {
-      if (wasDragging) return; // ignore drag-end clicks
-      handleBuildingClick(b.id);
+      // Ignore if the user was panning/dragging
+      if (wasDragging) return;
+
+      // SVG uses building name as id (e.g. id="UNIVERSITY MUSEUM")
+      // Match it against BUILDINGS using the normalized svgId field
+      const svgElementId  = el.id.trim().toUpperCase();
+      const building      = BUILDINGS.find(b => b.svgId === svgElementId);
+
+      console.log("CLICKED SVG id:", el.id, "→ matched:", building ? building.name : "NOT FOUND");
+
+      // Highlight this shape, clear others
+      svg.querySelectorAll('.building-shape').forEach(b => b.classList.remove('highlighted'));
+      el.classList.add('highlighted');
+
+      if (!building) {
+        console.warn(`No building in DB matched SVG id="${el.id}". Check that the building name in the DB matches the SVG id exactly.`);
+        return;
+      }
+
+      // Open modal using the DB id
+      handleBuildingClick(building.id);
     });
-
-    el.addEventListener("mouseenter", () => updateMapStatus(`📍 ${b.name}`));
-    el.addEventListener("mouseleave", () => updateMapStatus("Map loaded — drag to pan, scroll/pinch to zoom."));
   });
 }
-
 // ─────────────────────────────────────────────────────────────
 // MAP CONTROLS — zoom & pan applied to the SVG, not the container
 // ─────────────────────────────────────────────────────────────
@@ -340,6 +364,75 @@ function resetView() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ZOOM TO BUILDING  (used by search — no modal, just fly to it)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * zoomToBuilding(id)
+ * Smoothly zooms in and pans the map so the target building
+ * is centered in the viewport. Also highlights the shape.
+ * Does NOT open any modal.
+ *
+ * @param {string} id - DB building id
+ */
+function zoomToBuilding(id) {
+  const svg = mapInner.querySelector("svg");
+  if (!svg) return;
+
+  const building = BUILDINGS.find(b => b.id === id);
+  if (!building) return;
+
+  // Find the SVG shape element
+  const el = svg.getElementById(building.svgId) ||
+             svg.getElementById(building.name.trim());
+  if (!el) {
+    console.warn(`[CLS] zoomToBuilding: SVG shape not found for svgId="${building.svgId}"`);
+    return;
+  }
+
+  // ── Get bounding box of the shape in SVG coordinate space ──
+  const bbox = el.getBBox();             // { x, y, width, height } in SVG units
+  const svgRect  = svg.getBoundingClientRect();  // rendered size of SVG on screen
+
+  // The SVG's internal viewBox vs rendered size gives us the scale factor
+  const vb = svg.viewBox.baseVal;        // { x, y, width, height }
+  const scaleX = svgRect.width  / (vb.width  || svgRect.width);
+  const scaleY = svgRect.height / (vb.height || svgRect.height);
+
+  // Center of the shape in SVG coordinate space
+  const shapeCenterX = (bbox.x + bbox.width  / 2) * scaleX;
+  const shapeCenterY = (bbox.y + bbox.height / 2) * scaleY;
+
+  // Target zoom level — close enough to clearly see the building
+  const TARGET_SCALE = 3.0;
+
+  // Viewport center
+  const vpW = mapContainer.clientWidth;
+  const vpH = mapContainer.clientHeight;
+
+  // Calculate translation so the building center ends up at viewport center
+  const newTransX = vpW / 2 - shapeCenterX * TARGET_SCALE;
+  const newTransY = vpH / 2 - shapeCenterY * TARGET_SCALE;
+
+  // ── Animate smoothly ──
+  svg.style.transition = "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)";
+  mapScale  = TARGET_SCALE;
+  mapTransX = newTransX;
+  mapTransY = newTransY;
+  applyMapTransform();
+  setTimeout(() => { svg.style.transition = ""; }, 580);
+
+  // ── Highlight the shape ──
+  svg.querySelectorAll(".building-shape.highlighted").forEach(b => b.classList.remove("highlighted"));
+  el.classList.add("highlighted");
+
+  // ── Update sidebar active state ──
+  setActiveSidebarItem(id);
+  currentBuildingId = id;
+  updateMapStatus(`Showing: ${building.name}`);
+}
+
+// ─────────────────────────────────────────────────────────────
 // BUILDING CLICK
 // ─────────────────────────────────────────────────────────────
 function handleBuildingClick(id) {
@@ -355,7 +448,12 @@ function highlightBuilding(id) {
   const svg = mapInner.querySelector("svg");
   if (!svg) return;
   svg.querySelectorAll(".building-shape.highlighted").forEach(el => el.classList.remove("highlighted"));
-  const el = svg.getElementById(id);
+  // Find the building object to get its svgId (name-based), then find the SVG element
+  const building = BUILDINGS.find(b => b.id === id);
+  if (!building) return;
+  // SVG element id is the building name uppercased
+  const el = svg.getElementById(building.svgId) ||
+             svg.getElementById(building.name.trim()); // fallback: try exact name
   if (el) el.classList.add("highlighted");
 }
 
@@ -371,12 +469,12 @@ function setActiveSidebarItem(id) {
 // ─────────────────────────────────────────────────────────────
 function openBuildingModal(building) {
   document.getElementById("buildingModalLabel").textContent = building.name;
-  document.getElementById("modalBuildingDesc").textContent = building.desc || "";
-  document.getElementById("modalBuildingId").textContent = `ID: ${building.id}`;
+  document.getElementById("modalBuildingDesc").textContent  = building.desc || "";
+  document.getElementById("modalBuildingId").textContent    = `ID: ${building.id}`;
 
-  const grid = document.getElementById("modalFacilitiesGrid");
+  const grid       = document.getElementById("modalFacilitiesGrid");
   const facilities = building.facilities || [];
-  grid.innerHTML = "";
+  grid.innerHTML   = "";
 
   if (!facilities.length) {
     grid.innerHTML = `
@@ -387,17 +485,42 @@ function openBuildingModal(building) {
   } else {
     facilities.forEach((f, i) => {
       const card = document.createElement("div");
-      card.className = "facility-card";
+      card.className = "facility-card facility-card-clickable";
       card.style.animationDelay = `${i * 55}ms`;
+      card.title = "Click to view details";
       card.innerHTML = `
         <i class="bi ${f.icon || "bi-grid"} facility-card-icon"></i>
-        <div class="facility-card-name">${f.name}</div>
-        <div class="facility-card-desc">${f.desc || ""}</div>
+        <div class="facility-card-name">${escapeHTML(f.name)}</div>
+        <div class="facility-card-desc">${escapeHTML(f.type)}${f.floor ? ' · ' + escapeHTML(f.floor) : ''}</div>
+        <div class="facility-card-more"><i class="bi bi-arrow-right-circle"></i> Details</div>
       `;
+      // Click → open second modal with full facility details
+      card.addEventListener("click", () => showFacilityModal(f));
       grid.appendChild(card);
     });
   }
+
   buildingModal.show();
+}
+
+// ─────────────────────────────────────────────────────────────
+// FACILITY DETAIL MODAL  (second modal, opens above building modal)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * showFacilityModal(facility)
+ * Opens the facility detail modal on top of the building modal.
+ * facility = { name, type, floor, description, icon, desc }
+ */
+function showFacilityModal(facility) {
+  // Fill in content
+  document.getElementById("facilityModalName").textContent = facility.name;
+  document.getElementById("facilityModalType").textContent = facility.type  || "—";
+  document.getElementById("facilityModalFloor").textContent = facility.floor || "—";
+  document.getElementById("facilityModalDesc").textContent  = facility.description || "No additional details available.";
+  document.getElementById("facilityModalIcon").className    = `bi ${facility.icon || "bi-grid"} facility-modal-big-icon`;
+
+  facilityDetailModal.show();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -548,9 +671,10 @@ function showSearchResults(query) {
       `;
       item.addEventListener("click", () => {
         searchResults.classList.remove("open");
-        searchInput.value = m.name;
-        searchClearBtn.classList.add("visible");
-        handleBuildingClick(m.id);
+        searchInput.value = "";
+        searchClearBtn.classList.remove("visible");
+        // Zoom + highlight on map — no modal
+        zoomToBuilding(m.id);
       });
       searchResults.appendChild(item);
     });

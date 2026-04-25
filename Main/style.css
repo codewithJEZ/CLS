@@ -661,10 +661,23 @@ html, body {
   /* transformOrigin set to "0 0" by JS for correct zoom-at-point */
 }
 
+.map-inner svg text {
+  pointer-events: none !important;
+}
+
+.map-inner svg g {
+  pointer-events: none;
+}
+
+.map-inner svg #img {
+  pointer-events: none;
+}
+
 /* Building SVG shapes */
 .map-inner svg .building-shape {
   cursor: pointer;
   transition: opacity 0.16s, filter 0.16s;
+  pointer-events: all;
 }
 
 .map-inner svg .building-shape:hover {
@@ -673,8 +686,8 @@ html, body {
 }
 
 .map-inner svg .building-shape.highlighted {
-  filter: drop-shadow(0 0 10px rgba(246,172,2,0.95));
-  opacity: 0.9;
+  fill: orange;
+  opacity: 1;
 }
 
 /* Map Placeholder */
@@ -854,6 +867,84 @@ html, body {
 
 .facility-card-name { font-weight: 700; font-size: 0.84rem; color: var(--text-dark); margin-bottom: 4px; }
 .facility-card-desc { font-size: 0.73rem; color: var(--gray-text); line-height: 1.5; }
+
+/* ── Expandable Facility Cards ────────────────────────────── */
+
+/* Make the whole card a column layout when expanded */
+.facility-card-expandable {
+  cursor: pointer;
+  padding: 0;            /* inner sections handle padding */
+  overflow: hidden;
+}
+
+/* Top row: icon + name + chevron */
+.facility-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+}
+
+/* Push chevron to the right */
+.facility-card-chevron {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--gray-text);
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+}
+
+/* Icon sits inline now — override block display from base rule */
+.facility-card-expandable .facility-card-icon {
+  margin-bottom: 0;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* Name sits inline */
+.facility-card-expandable .facility-card-name {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+/* Details panel — hidden by default using max-height trick */
+.facility-card-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease, padding 0.22s ease;
+  padding: 0 14px;
+  border-top: 1px solid transparent;
+}
+
+.facility-detail-text {
+  font-size: 0.78rem;
+  color: var(--gray-text);
+  line-height: 1.6;
+  margin: 0;
+  padding: 2px 0 12px;
+}
+
+/* ── EXPANDED state ── */
+.facility-card-expandable[aria-expanded="true"] {
+  border-color: rgba(123,29,30,0.3);
+  background: var(--white);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.09);
+}
+
+.facility-card-expandable[aria-expanded="true"]::before {
+  transform: scaleX(1);   /* shows the maroon top bar */
+}
+
+.facility-card-expandable[aria-expanded="true"] .facility-card-chevron {
+  transform: rotate(180deg);  /* arrow flips up */
+  color: var(--maroon);
+}
+
+.facility-card-expandable[aria-expanded="true"] .facility-card-details {
+  max-height: 200px;       /* tall enough for any content */
+  padding: 0 14px;
+  border-top-color: var(--gray-mid);
+}
 
 .no-facilities {
   text-align: center;
@@ -1387,4 +1478,163 @@ html, body {
   .facility-item-icon { width: 28px; height: 28px; font-size: 0.8rem; }
   .facility-item-name { font-size: 0.78rem; }
   .recommended-badge  { display: none; } /* too cramped, save space */
+} 
+
+/* ═══════════════════════════════════════════════════════════
+   FACILITY CARD — clickable (opens second modal)
+   ═══════════════════════════════════════════════════════════ */
+.facility-card-clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+/* "Details →" hint at the bottom of each card */
+.facility-card-more {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--maroon);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.facility-card-clickable:hover .facility-card-more {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Pulse the top bar on hover to signal clickability */
+.facility-card-clickable:hover::before { transform: scaleX(1); }
+.facility-card-clickable:active { transform: translateY(-1px) scale(0.98); }
+
+/* ═══════════════════════════════════════════════════════════
+   FACILITY DETAIL MODAL  (second modal, higher z-index)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Sits above the building modal (Bootstrap default z-index is 1055) */
+#facilityDetailModal { z-index: 1080; }
+
+.facility-detail-dialog {
+  max-width: 380px;
+}
+
+.facility-detail-content {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+/* Header */
+.facility-detail-header {
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-light) 100%);
+  color: #fff;
+  padding: 18px 20px 16px;
+  border-bottom: none;
+}
+
+.facility-detail-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.facility-modal-big-icon {
+  font-size: 1.7rem;
+  color: rgba(255,255,255,0.9);
+  flex-shrink: 0;
+}
+
+.facility-detail-header .modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+/* Body */
+.facility-detail-body {
+  padding: 20px;
+  background: #fff;
+}
+
+.facility-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 12px;
+}
+
+.facility-detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.facility-detail-label .bi { color: var(--maroon); }
+
+.facility-detail-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: right;
+}
+
+.facility-detail-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 12px 0 10px;
+}
+
+.facility-detail-desc-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.facility-detail-desc {
+  font-size: 0.83rem;
+  color: #4b5563;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Footer */
+.facility-detail-footer {
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+  padding: 10px 16px;
+  justify-content: flex-end;
+}
+
+.btn-close-facility {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  color: #374151;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  padding: 5px 14px;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-close-facility:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }

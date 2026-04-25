@@ -251,6 +251,48 @@
   </button>
 
 
+  <!-- ═══════════════════ FACILITY DETAIL MODAL ═══════════════════════ -->
+  <!-- Opens ON TOP of the building modal when a facility card is clicked -->
+  <div class="modal fade" id="facilityDetailModal" tabindex="-1" aria-labelledby="facilityDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm facility-detail-dialog">
+      <div class="modal-content facility-detail-content">
+
+        <div class="modal-header facility-detail-header">
+          <div class="facility-detail-header-inner">
+            <i id="facilityModalIcon" class="bi bi-grid facility-modal-big-icon"></i>
+            <h5 class="modal-title" id="facilityDetailModalLabel">
+              <span id="facilityModalName">Facility Name</span>
+            </h5>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body facility-detail-body">
+          <div class="facility-detail-row">
+            <span class="facility-detail-label"><i class="bi bi-tag-fill"></i> Type</span>
+            <span class="facility-detail-value" id="facilityModalType">—</span>
+          </div>
+          <div class="facility-detail-row">
+            <span class="facility-detail-label"><i class="bi bi-layers-fill"></i> Floor / Location</span>
+            <span class="facility-detail-value" id="facilityModalFloor">—</span>
+          </div>
+          <div class="facility-detail-divider"></div>
+          <div class="facility-detail-desc-wrap">
+            <span class="facility-detail-label"><i class="bi bi-info-circle-fill"></i> Description</span>
+            <p class="facility-detail-desc" id="facilityModalDesc">—</p>
+          </div>
+        </div>
+
+        <div class="modal-footer facility-detail-footer">
+          <button type="button" class="btn btn-sm btn-close-facility" data-bs-dismiss="modal">
+            <i class="bi bi-x"></i> Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="script.js"></script>
