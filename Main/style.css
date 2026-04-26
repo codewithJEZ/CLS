@@ -645,6 +645,7 @@ html, body {
   border: 1.5px solid var(--gray-mid);
   position: relative;
   animation: map-load-in 0.4s 0.25s ease both;
+  will-change: transform;
 }
 
 @keyframes map-load-in {
@@ -686,8 +687,9 @@ html, body {
 }
 
 .map-inner svg .building-shape.highlighted {
-  fill: orange;
-  opacity: 1;
+  fill: rgba(246,172,2,0.2);
+  stroke: #F6AC02;
+  stroke-width: 2;
 }
 
 /* Map Placeholder */
@@ -1637,4 +1639,184 @@ html, body {
 .btn-close-facility:hover {
   background: #f3f4f6;
   border-color: #d1d5db;
+}
+#mapContainer {
+  overflow: hidden;
+}
+/* ═══════════════════════════════════════════════════════════
+   v2.0 ADDITIONS
+   - Map fill fix
+   - Assistant search styles
+   - Interaction-visited badge
+   - Mobile sidebar improvements
+════════════════════════════════════════════════════════════ */
+
+/* ── MAP FILL FIX (TASK 1) ──
+   Remove the padding that was creating empty space around the SVG.
+   The SVG auto-fits via JS (autoFitMap), so no padding needed. */
+.map-container {
+  padding: 0 !important;
+  background: var(--white);
+}
+
+/* map-inner: remove border/radius so SVG goes edge-to-edge */
+.map-inner {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* SVG inside map-inner: fills the wrapper, transform handles position */
+.map-inner svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* width/height driven by viewBox + JS transform, not CSS */
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+/* Give map-inner a relative context for the absolute SVG */
+.map-inner {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── ASSISTANT SEARCH (TASK 5) ─────────────────────────────── */
+.assistant-search-wrap {
+  position: relative;
+}
+
+/* Combo-box row: icon + input + caret */
+.asst-combo-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.asst-combo-icon {
+  position: absolute;
+  left: 11px;
+  color: var(--maroon);
+  font-size: 0.82rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.asst-combo-caret {
+  position: absolute;
+  right: 11px;
+  color: var(--gray-text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: transform var(--transition), color var(--transition);
+  z-index: 1;
+  user-select: none;
+}
+
+.asst-combo-caret.open {
+  transform: rotate(180deg);
+  color: var(--maroon);
+}
+
+.assistant-search-input {
+  width: 100%;
+  padding: 9px 36px 9px 34px;
+  border: 1.5px solid var(--gray-mid);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.87rem;
+  color: var(--text-dark);
+  background: var(--gray-light);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+}
+
+.assistant-search-input:focus {
+  border-color: var(--maroon);
+  background-color: var(--white);
+  box-shadow: 0 0 0 2px rgba(123,29,30,0.1);
+}
+
+.assistant-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--white);
+  border: 1px solid var(--gray-mid);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 200;
+  display: none;
+}
+
+.assistant-search-results.open { display: block; animation: dropdown-in 0.15s ease; }
+
+.asst-search-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid var(--gray-light);
+  transition: background var(--transition);
+}
+.asst-search-item:last-child  { border-bottom: none; }
+.asst-search-item:hover        { background: #fdf5f5; }
+.asst-search-item.selected     { background: #f9eaea; font-weight: 600; }
+.asst-search-item.selected i   { color: var(--maroon); }
+.asst-search-item i            { color: var(--maroon); font-size: 0.82rem; flex-shrink: 0; }
+
+/* Highlighted match text */
+.asst-match {
+  background: rgba(246,172,2,0.35);
+  padding: 0 1px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.asst-no-results {
+  padding: 14px;
+  font-size: 0.82rem;
+  color: var(--gray-text);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* ── VISITED BADGE (subtle variant of recommended-badge) ───── */
+.recommended-badge.visited-badge {
+  color: var(--gray-text);
+}
+
+/* ── MOBILE MAP CONTAINER (TASK 6) ─────────────────────────── */
+@media (max-width: 768px) {
+  .map-container { padding: 0 !important; }
+  .map-inner     { border-radius: 0; }
+}
+
+@media (max-width: 480px) {
+  .map-container { padding: 0 !important; }
+}
+
+/* ── HIGHLIGHTED BUILDING SHAPE ─────────────────────────────── */
+/* Stronger pulse animation on highlighted buildings */
+.map-inner svg .building-shape.highlighted {
+  fill: #F6AC02 !important;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px rgba(246,172,2,0.9));
+  animation: building-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes building-pulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(246,172,2,0.7)); }
+  50%       { filter: drop-shadow(0 0 14px rgba(246,172,2,1)); }
 }
