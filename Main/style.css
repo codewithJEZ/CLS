@@ -926,6 +926,9 @@ html, body {
 .no-facilities i { font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 8px; }
 
 .building-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background: var(--gray-light);
   border-top: 1px solid var(--gray-mid);
   padding: 10px 20px;
@@ -1991,18 +1994,12 @@ html, body {
   50%       { filter: drop-shadow(0 0 14px rgba(246,172,2,1)); }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 5 — UI AESTHETIC POLISH
-   ═══════════════════════════════════════════════════════════ */
-
-/* ── Variable additions ── */
 :root {
   --radius-xl:    22px;
   --shadow-card:  0 2px 10px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
   --shadow-raise: 0 6px 22px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
 }
 
-/* ── Search: taller tap target, softer ring ── */
 .search-input {
   height: 40px;
   padding: 0 40px 0 38px;
@@ -2021,7 +2018,6 @@ html, body {
   border-radius: 50%;
 }
 
-/* ── Sidebar list: cleaner separator, tighter spacing ── */
 .facility-list { padding: 4px 0 8px; }
 
 .facility-list-item {
@@ -2034,9 +2030,7 @@ html, body {
   transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.facility-list-item + .facility-list-item {
-  margin-top: 2px;
-}
+.facility-list-item + .facility-list-item { margin-top: 2px; }
 
 .facility-list-item:hover {
   background: #fdf2f2;
@@ -2096,7 +2090,6 @@ html, body {
   color: var(--maroon);
 }
 
-/* ── Facility cards: softer, cleaner ── */
 .facility-card {
   border-radius: var(--radius-md);
   border: 1px solid rgba(0,0,0,0.07);
@@ -2128,7 +2121,6 @@ html, body {
 
 .facility-card-icon { font-size: 1.25rem; margin-bottom: 8px; }
 
-/* ── Building modal: tighter, cleaner ── */
 .building-modal-header { padding: 18px 20px 16px; }
 
 .modal-building-icon {
@@ -2163,7 +2155,6 @@ html, body {
   background: #f9f9f9;
 }
 
-/* ── Buttons: larger tap targets, cleaner radius ── */
 .btn-assistant {
   border-radius: 8px;
   padding: 7px 16px;
@@ -2193,7 +2184,6 @@ html, body {
   letter-spacing: 0.01em;
 }
 
-/* ── Assistant modal ── */
 .assistant-modal-body { padding: 18px 20px; }
 
 .assistant-field { margin-bottom: 18px; }
@@ -2224,16 +2214,12 @@ html, body {
 .answer-area { border-radius: var(--radius-md); }
 .answer-text { font-size: 0.87rem; line-height: 1.72; padding: 14px 16px; }
 
-/* ── Facility detail modal ── */
 .facility-detail-content { border-radius: 20px 20px 0 0; }
 
 .facility-detail-header { padding: 18px 20px 14px; }
 .facility-detail-body   { padding: 18px 20px; }
 
-.facility-detail-row {
-  padding: 10px 0;
-  gap: 14px;
-}
+.facility-detail-row { padding: 10px 0; gap: 14px; }
 
 .facility-detail-label { font-size: 0.72rem; gap: 6px; }
 
@@ -2243,14 +2229,10 @@ html, body {
   color: var(--text-dark);
 }
 
-.facility-detail-desc {
-  font-size: 0.84rem;
-  line-height: 1.7;
-}
+.facility-detail-desc { font-size: 0.84rem; line-height: 1.7; }
 
 .facility-detail-footer { padding: 10px 18px; }
 
-/* ── Map controls ── */
 .map-ctrl-btn {
   width: 34px;
   height: 34px;
@@ -2258,7 +2240,6 @@ html, body {
   font-size: 0.9rem;
 }
 
-/* ── Mobile polish (≤768px) ── */
 @media (max-width: 768px) {
   .search-input { height: 40px; border-radius: 50px; }
 
@@ -2285,8 +2266,8 @@ html, body {
   .building-item-count { font-size: 0.73rem; }
   .recommended-badge   { font-size: 0.68rem; }
 
-  .modal-title          { font-size: 1rem; }
-  .modal-building-desc  { font-size: 0.77rem; }
+  .modal-title         { font-size: 1rem; }
+  .modal-building-desc { font-size: 0.77rem; }
 
   .building-modal-body { padding: 14px 14px 20px !important; }
 
@@ -2294,9 +2275,9 @@ html, body {
 
   .facilities-grid { gap: 8px; }
 
-  .facility-card        { padding: 12px; border-radius: 12px; }
-  .facility-card-name   { font-size: 0.82rem; }
-  .facility-card-desc   { font-size: 0.7rem; }
+  .facility-card      { padding: 12px; border-radius: 12px; }
+  .facility-card-name { font-size: 0.82rem; }
+  .facility-card-desc { font-size: 0.7rem; }
 
   .question-item {
     padding: 12px 14px;
@@ -2317,13 +2298,12 @@ html, body {
   .answer-text { font-size: 0.88rem; line-height: 1.7; padding: 13px 14px; }
 }
 
-/* ── Small mobile (≤480px) ── */
 @media (max-width: 480px) {
-  .facility-list-item { margin: 0 6px; padding: 12px 12px; min-height: 58px; }
+  .facility-list-item { margin: 0 6px; padding: 12px; min-height: 58px; }
   .facility-item-icon { width: 34px; height: 34px; border-radius: 9px; font-size: 0.9rem; }
   .facility-item-name { font-size: 0.86rem; }
 
-  .modal-title         { font-size: 0.95rem; }
+  .modal-title        { font-size: 0.95rem; }
 
   .facility-card { padding: 10px 11px; border-radius: 10px; }
 
@@ -2331,3 +2311,116 @@ html, body {
   .btn-close-assistant,
   .btn-close-facility { min-height: 42px; padding: 9px 16px; font-size: 0.82rem; }
 }
+
+.building-image-container {
+  width: 100%;
+  margin: 10px 0 15px;
+}
+
+#modalBuildingImg {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+
+.building-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.img-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+#viewerImg {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+}
+
+#closeViewer {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+}
+
+#view360Btn { margin-right: auto; }
+
+.building-modal-footer .btn { margin-left: 6px; }
+.building-modal-footer .btn:not(#view360Btn) { margin-left: 8px; }
+
+.video360-modal {
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.video360-modal video {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+}
+
+.video360-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+}
+
+#video360Modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.95);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+#panoramaViewer {
+  width: 100%;
+  height: 100%;
+}
+
+#video360Player {
+  max-width: 90%;
+  max-height: 90%;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  will-change: transform;
+  transform-origin: center center;
+  transition: transform 0.08s ease;
+}
+
+#video360Player:active { cursor: grabbing; }
