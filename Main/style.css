@@ -959,6 +959,9 @@ html, body {
 .no-facilities i { font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 8px; }
 
 .building-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background: var(--gray-light);
   border-top: 1px solid var(--gray-mid);
   padding: 10px 20px;
@@ -1819,4 +1822,139 @@ html, body {
 @keyframes building-pulse {
   0%, 100% { filter: drop-shadow(0 0 6px rgba(246,172,2,0.7)); }
   50%       { filter: drop-shadow(0 0 14px rgba(246,172,2,1)); }
+}
+.building-image-container {
+  width: 100%;
+  margin: 10px 0 15px;
+}
+
+#modalBuildingImg {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+.building-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+.img-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+#viewerImg {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+}
+
+#closeViewer {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+}
+/* MODAL FOOTER LAYOUT FIX */
+.building-modal-footer {
+  display: flex;
+  align-items: center;
+}
+
+/* 360 button sa left */
+#view360Btn {
+  margin-right: auto;
+}
+
+/* other buttons sa right */
+.building-modal-footer .btn:not(#view360Btn) {
+  margin-left: 8px;
+}
+.building-modal-footer .btn {
+  margin-left: 6px;
+}
+.video360-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video360-modal video {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 10px;
+}
+
+.video360-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+}
+#video360Modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.95);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+#panoramaViewer {
+  width: 100%;
+  height: 100%;
+}
+#video360Player {
+  max-width: 90%;
+  max-height: 90%;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+#video360Player:active {
+  cursor: grabbing;
+}
+/* smoother feel + subtle 3D */
+#video360Player {
+  max-width: 90%;
+  max-height: 90%;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.1s linear; /* for vertical tilt */
+  will-change: transform;
+  transform-origin: center center;
+  transition: transform 0.08s ease;
+}
+#video360Player:active {
+  cursor: grabbing;
 }
