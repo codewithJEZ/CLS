@@ -7,7 +7,10 @@ import {
   updateMapStatus,
   applyMapTransform,
 } from '../map.js';
-import { getRoadWaypoints } from './roads.js';
+import { getRoadWaypoints, ROAD_NODES, ROAD_EDGE_LIST } from './roads.js';
+
+window.findPath = findPath;
+window.drawPath = drawRoute;
 
 // ── Callback registry (avoids circular import with script.js) ─
 let _escapeHTML          = s => String(s);
@@ -16,6 +19,49 @@ let _handleBuildingClick = () => {};
 export function registerNavigationCallbacks({ escapeHTML, handleBuildingClick }) {
   _escapeHTML          = escapeHTML;
   _handleBuildingClick = handleBuildingClick;
+}
+
+// ═════════════════════════════════════════════════════════════
+// PATHFINDING — Dijkstra shortest path on ROAD_NODES graph
+// ═════════════════════════════════════════════════════════════
+
+export function findPath(startId, endId) {
+  if (startId === endId) return [startId];
+  if (!ROAD_NODES[startId] || !ROAD_NODES[endId]) return null;
+
+  const dist    = {};
+  const prev    = {};
+  const visited = new Set();
+  const pq      = [];
+
+  for (const n of Object.keys(ROAD_NODES)) dist[n] = Infinity;
+  dist[startId] = 0;
+  pq.push([0, startId]);
+
+  while (pq.length) {
+    pq.sort((a, b) => a[0] - b[0]);
+    const [d, curr] = pq.shift();
+
+    if (visited.has(curr)) continue;
+    visited.add(curr);
+    if (curr === endId) break;
+
+    for (const nb of (ROAD_EDGE_LIST[curr] || [])) {
+      if (visited.has(nb)) continue;
+      const c = ROAD_NODES[curr], n = ROAD_NODES[nb];
+      const alt = d + Math.hypot(n.x - c.x, n.y - c.y);
+      if (alt < dist[nb]) {
+        dist[nb] = alt;
+        prev[nb] = curr;
+        pq.push([alt, nb]);
+      }
+    }
+  }
+
+  const path = [];
+  let node = endId;
+  while (node !== undefined) { path.unshift(node); node = prev[node]; }
+  return path[0] === startId ? path : null;
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -195,14 +241,10 @@ export function drawRoute(startId, destId) {
 
   showClearRouteBtn();
 }
-clearRoute();
 
 export function clearRoute() {
-  const svg = mapInner.querySelector('svg');
-  if (svg) {
-    const overlay = svg.getElementById('routeOverlay');
-    if (overlay) overlay.remove();
-  }
+  const overlay = document.getElementById('routeOverlay');
+  if (overlay) overlay.remove();
   hideClearRouteBtn();
 }
 
