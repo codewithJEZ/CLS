@@ -299,24 +299,27 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--maroon);
   flex-shrink: 0;
+  border-bottom: 2px solid rgba(246,172,2,0.25);
 }
 
 .sidebar-title {
-  font-family: var(--font-head);
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   margin: 0;
   white-space: nowrap;
 }
 
-.sidebar-title i { color: var(--yellow); }
+.sidebar-title i { color: var(--yellow); font-size: 1rem; }
 
 .sidebar-collapse-btn {
   background: none;
@@ -332,30 +335,6 @@ html, body {
 
 .sidebar-collapse-btn:hover { color: var(--white); background: rgba(255,255,255,0.1); }
 
-.sidebar-search {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--gray-light);
-  flex-shrink: 0;
-}
-
-.facility-filter {
-  width: 100%;
-  padding: 7px 12px;
-  border: 1.5px solid var(--gray-mid);
-  border-radius: 50px;
-  font-family: var(--font-body);
-  font-size: 0.81rem;
-  outline: none;
-  background: var(--gray-light);
-  color: var(--text-dark);
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-
-.facility-filter:focus {
-  border-color: var(--maroon);
-  background: var(--white);
-  box-shadow: 0 0 0 2px rgba(123,29,30,0.1);
-}
 
 /* Scrollable building list */
 .facility-list {
@@ -610,42 +589,34 @@ html, body {
 }
 
 /*
-  MAP CONTAINER
-  This is the viewport for the SVG.
-  - overflow: hidden so SVG can't bleed out
-  - cursor: grab for drag UX
-  - NO overflow scroll — dragging moves the SVG transform, not scroll position
+  MAP CONTAINER — the clipping viewport for the SVG.
+  padding: 0 so the SVG fills edge-to-edge (JS autoFitMap centers it).
+  touch-action: none hands all gestures to the JS pan/zoom handlers.
 */
 .map-container {
   flex: 1;
-  overflow: hidden;  /* <-- key fix: clip the SVG, don't scroll */
-  padding: 16px;
+  overflow: hidden;
+  padding: 0;
   cursor: grab;
   position: relative;
-  touch-action: none; /* let JS handle all touch, prevent browser scroll */
-  -webkit-overflow-scrolling: auto;
+  touch-action: none;
+  background: var(--white);
 }
 
 .map-container:active { cursor: grabbing; }
 
 /*
-  MAP INNER
-  Wrapper that holds the SVG.
-  - border/shadow/radius for the "card" look
-  - overflow: hidden clips SVG corners
-  - The SVG inside gets transform applied by JS
+  MAP INNER — holds the absolutely-positioned SVG.
+  No border/shadow/radius: the SVG fills edge-to-edge.
+  position: relative is the containing block for the SVG (position: absolute).
 */
 .map-inner {
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 6px 28px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
   background: var(--white);
-  border: 1.5px solid var(--gray-mid);
   position: relative;
   animation: map-load-in 0.4s 0.25s ease both;
-  will-change: transform;
 }
 
 @keyframes map-load-in {
@@ -653,13 +624,9 @@ html, body {
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* SVG inside — transform is applied by JS to this element */
+/* SVG inside — transform is applied by JS; size set by JS to viewBox dimensions */
 .map-inner svg {
-  /* fills the inner box initially */
-  width: 100%;
-  height: 100%;
   display: block;
-  /* transformOrigin set to "0 0" by JS for correct zoom-at-point */
 }
 
 .map-inner svg text {
@@ -1322,165 +1289,406 @@ html, body {
   border-radius: 10px;
 }
 
-/* ═══════════════════════════════════════════
-   RESPONSIVE — TABLET (≤ 768px)
-   Sidebar becomes a bottom drawer
-═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 768px)
+   Bottom-sheet sidebar · floating map toolbar
+═══════════════════════════════════════════════════ */
 @media (max-width: 768px) {
 
+  /* ── Variables ── */
   :root {
-    --header-h: 56px;
-    --footer-h: 58px;
-    --sidebar-w: 100%;
+    --header-h:       52px;
+    --footer-h:       44px;
+    --sheet-handle-h: 56px;
   }
 
-  /* Header: logo + search only, no explore label */
-  .site-header {
-    padding: 0 12px;
-    gap: 10px;
-    height: var(--header-h);
-    flex-wrap: nowrap;
-  }
-
+  /* ── Header: compact, search-focused ── */
+  .site-header  { padding: 0 12px; gap: 8px; }
   .header-right { display: none; }
   .brand-sub    { display: none; }
+  .header-logo  { height: 30px; width: 30px; }
+  .header-center { flex: 1; max-width: none; }
 
-  .header-center { max-width: none; }
-
-  /* Stack: sidebar on top, map below */
+  /* ── Main wrapper: sidebar is position:fixed, so only map is in the flex flow ── */
   .main-wrapper {
     flex-direction: column;
-    height: calc(100dvh - var(--header-h));
+    height: calc(100vh - var(--header-h) - var(--footer-h));
     overflow: hidden;
   }
 
-  /* Sidebar = compact horizontal strip */
-  .sidebar {
-    width: 100% !important;
-    max-height: 180px;
+  /* ── Map section: fills the entire wrapper height ── */
+  .map-section {
+    flex: 1;
     min-height: 0;
-    flex-shrink: 0;
-    border-right: none;
-    border-bottom: 1px solid var(--gray-mid);
-    animation: none;
-    transition: max-height 0.28s ease;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
   }
 
-  .sidebar.collapsed { max-height: 0; border-bottom: none; }
+  /* ── Map toolbar: floating overlay, touch events pass through empty space ── */
+  .map-toolbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 15;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 10px 12px;
+    pointer-events: none;
+    align-items: flex-start;
+  }
 
-  /* Horizontal scrolling list on mobile */
+  .map-toolbar > * { pointer-events: auto; }
+
+  .map-toolbar-label {
+    background: rgba(255,255,255,0.92);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.73rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.14);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.6);
+    max-width: 58%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .map-toolbar-controls {
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 14px;
+    padding: 4px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.16);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* 44×44px minimum tap target */
+  .map-ctrl-btn {
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    box-shadow: none;
+    font-size: 1.05rem;
+    color: var(--gray-text);
+  }
+
+  .map-ctrl-btn:hover {
+    background: var(--maroon);
+    color: var(--white);
+    border-color: transparent;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ── Bottom-sheet sidebar ──────────────────────────────────────
+     Fixed above the footer. Slides down when collapsed so only
+     the handle strip (--sheet-handle-h) peeks above the footer.  */
+  .sidebar {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: var(--footer-h);
+    width: 100% !important;
+    height: 45vh;
+    max-height: none !important;
+    min-height: 0;
+    border-right: none;
+    border-bottom: none;
+    border-top: 3px solid var(--yellow);
+    border-radius: 20px 20px 0 0;
+    z-index: 50;
+    box-shadow: 0 -6px 28px rgba(0,0,0,0.28);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+    animation: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Drag-handle pill at the top of the sheet */
+  .sidebar::before {
+    content: '';
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    width: 40px; height: 5px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 100px;
+    pointer-events: none;
+    z-index: 1;
+    transition: background 0.2s;
+  }
+
+  .sidebar:not(.collapsed)::before {
+    background: rgba(255,255,255,0.75);
+  }
+
+  /* Collapsed: slide down, only the handle peeks above the footer.
+     width:100%!important overrides the desktop .sidebar.collapsed{width:0}. */
+  .sidebar.collapsed {
+    width: 100% !important;
+    transform: translateY(calc(100% - var(--sheet-handle-h)));
+    max-height: none !important;
+    border-bottom: none;
+  }
+
+  /* Sheet header: extra top-padding to clear the drag pill */
+  .sidebar-header {
+    cursor: pointer;
+    padding-top: 26px;
+    padding-bottom: 10px;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Chevron rotates based on state */
+  .sidebar-collapse-btn i {
+    transform: rotate(-90deg);
+    transition: transform 0.3s;
+  }
+  .sidebar.collapsed .sidebar-collapse-btn i {
+    transform: rotate(90deg);
+  }
+
+  /* Pull-tab hidden — tap the sheet header to expand */
+  .sidebar-tab    { display: none !important; }
+  .sidebar-footer { display: none; }
+
+  /* ── Scrollable building list inside the sheet ── */
   .facility-list {
-    flex-direction: row;
+    display: flex;
+    flex-direction: column;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 6px 8px;
-    gap: 6px;
-    scroll-snap-type: x mandatory;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0 24px;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Touch-friendly items (min 60px tap target) */
   .facility-list-item {
     flex-shrink: 0;
-    scroll-snap-align: start;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    border-radius: var(--radius-md);
-    padding: 8px 12px;
-    background: var(--gray-light);
-    min-width: 140px;
-    max-width: 180px;
-    transform: none !important;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    border-radius: 0;
+    padding: 14px 16px;
+    background: transparent;
+    min-width: unset;
+    max-width: unset;
+    min-height: 60px;
+    transform: none;
+    transition: background 0.15s, border-left-color 0.15s;
+  }
+
+  .facility-list-item:last-child { border-bottom: none; }
+
+  .facility-list-item:active {
+    background: rgba(var(--maroon-rgb, 101,6,6), 0.06);
   }
 
   .facility-list-item:hover,
   .facility-list-item.active {
-    border-bottom-color: var(--maroon);
+    border-left-color: var(--maroon);
+    border-bottom-color: rgba(0,0,0,0.06);
     background: #fdf3f3;
-    transform: none !important;
+    transform: none;
   }
 
-  .building-item-arrow { display: none; }
-  .building-item-count { display: none; }
+  .facility-list-item.active:last-child { border-bottom: none; }
 
-  /* Sidebar collapse becomes a slim toggle at the top */
-  .sidebar-search { display: none; }
-
-  .sidebar-collapse-btn i { transform: rotate(90deg); }
-
-  .sidebar-tab {
-    position: fixed;
-    left: 50%;
-    top: auto;
-    bottom: 0;
-    transform: translateX(-50%);
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    width: 56px;
-    height: 20px;
+  .facility-item-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
   }
 
-  /* Map takes remaining space */
-  .map-section { flex: 1; min-height: 0; }
+  .facility-item-info { flex: 1; min-width: 0; }
 
-  .map-container { padding: 10px; }
+  .facility-item-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
 
-  /* Map hint shorter text */
-  .map-hint { font-size: 0.72rem; padding: 6px 14px; }
+  .building-item-arrow { display: flex; flex-shrink: 0; }
+  .building-item-count { display: flex; font-size: 0.74rem; }
 
-  /* Modals: full screen on mobile */
+  /* Map hint hidden — sheet handle occupies that zone */
+  .map-hint { display: none; }
+
+  /* ── Bottom-sheet modals ── */
   .modal-dialog {
     margin: 0 !important;
     max-width: 100% !important;
-    height: 100%;
+    width: 100% !important;
+    height: auto !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+  }
+
+  .modal-dialog-centered {
+    align-items: flex-end;
+    min-height: 100%;
+    position: relative;
   }
 
   .modal-dialog .modal-content {
-    height: 100%;
-    border-radius: 0 !important;
+    max-height: 82vh;
+    height: auto !important;
+    border-radius: 20px 20px 0 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -6px 40px rgba(0,0,0,0.28);
   }
 
-  .modal-dialog-centered { align-items: flex-end; }
+  /* Drag handle pill on every modal header */
+  .modal-header {
+    position: relative;
+    padding-top: 28px !important;
+    flex-shrink: 0;
+  }
 
-  .facilities-grid { grid-template-columns: 1fr 1fr; }
+  .modal-header::before {
+    content: '';
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    width: 40px; height: 5px;
+    background: rgba(255,255,255,0.45);
+    border-radius: 100px;
+    pointer-events: none;
+    z-index: 1;
+  }
 
-  /* Footer on mobile */
-  .site-footer        { padding: 0; }
-  .footer-inner       { padding: 0 12px; gap: 8px; }
-  .footer-hint        { font-size: 0.67rem; }
-  .footer-hint i      { display: none; }
-  .footer-identity    { font-size: 0.63rem; }
-  .footer-admin-link  { font-size: 0.63rem; }
+  /* Body scrolls, header + footer stay pinned */
+  .modal-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    flex: 1;
+    min-height: 0;
+    padding: 16px !important;
+  }
 
-  /* FAB: icon-only pill on mobile */
+  .modal-footer { flex-shrink: 0; }
+
+  /* Slide-up entrance — override Bootstrap's slide-down default */
+  .modal.fade .modal-dialog {
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.show .modal-dialog {
+    transform: translateY(0);
+  }
+
+  /* Facility detail modal: same bottom-sheet, narrower max-height */
+  .facility-detail-dialog {
+    max-width: 100% !important;
+  }
+
+  .facility-detail-dialog .modal-content {
+    max-height: 72vh;
+  }
+
+  .facilities-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .building-modal-body  { padding: 14px 14px 20px !important; }
+  .building-modal-footer { padding: 10px 14px !important; }
+  .assistant-modal-body  { padding: 14px !important; }
+  .assistant-modal-footer { padding: 10px 14px !important; }
+  .facility-detail-body  { padding: 14px !important; }
+  .facility-detail-footer { padding: 10px 14px !important; }
+
+  .facility-card { padding: 10px 12px; }
+  .facility-card-name { font-size: 0.8rem; }
+  .facility-card-desc { font-size: 0.7rem; }
+
+  /* ── Footer: single-line, minimal height ── */
+  .site-footer    { padding: 0; }
+  .footer-inner   { padding: 0 16px; gap: 8px; grid-template-columns: 1fr 1fr; }
+  .footer-hint    { display: none; }
+  .footer-identity { font-size: 0.62rem; justify-self: start; }
+  .footer-admin-link { font-size: 0.62rem; }
+
+  /* ── FAB: icon-only, sits above the peeking sheet handle ── */
   .floating-assistant-btn {
     padding: 12px 14px;
     border-radius: 50px;
-    bottom: 20px;
+    bottom: calc(var(--footer-h) + var(--sheet-handle-h) + 12px);
     right: 14px;
   }
 
   .fab-label { display: none; }
-}
 
-/* ═══════════════════════════════════════════
-   RESPONSIVE — MOBILE (≤ 480px)
-═══════════════════════════════════════════ */
-@media (max-width: 480px) {
-  .facilities-grid { grid-template-columns: 1fr; }
-  .brand-title     { font-size: 0.9rem; }
-  .search-input    { font-size: 0.82rem; }
-  .map-container   { padding: 8px; }
+  /* ── Prevent iOS viewport zoom when search input is focused ── */
+  .search-input { font-size: 1rem; }
 
-  .facility-list-item {
-    min-width: 120px;
-    max-width: 150px;
-    padding: 7px 10px;
+  /* ── Stop sheet list scroll from bleeding to the page/map ── */
+  .facility-list { overscroll-behavior: contain; }
+
+  /* ── Dynamic viewport: upgrade 100vh → 100dvh when supported ──
+     100vh on iOS Safari includes the collapsing browser chrome,
+     making the wrapper too tall. 100dvh tracks the visible area. */
+  @supports (height: 100dvh) {
+    .main-wrapper {
+      height: calc(100dvh - var(--header-h) - var(--footer-h));
+    }
   }
 
-  .facility-item-icon { width: 28px; height: 28px; font-size: 0.8rem; }
-  .facility-item-name { font-size: 0.78rem; }
-  .recommended-badge  { display: none; } /* too cramped, save space */
-} 
+  /* ── iPhone safe-area: keep footer and sheet above the home bar ── */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .site-footer {
+      padding-bottom: env(safe-area-inset-bottom);
+      height: calc(var(--footer-h) + env(safe-area-inset-bottom));
+    }
+    .sidebar {
+      bottom: calc(var(--footer-h) + env(safe-area-inset-bottom));
+    }
+    .floating-assistant-btn {
+      bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + var(--sheet-handle-h) + 12px);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — SMALL MOBILE (≤ 480px)
+═══════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .facilities-grid    { grid-template-columns: 1fr; }
+  .brand-title        { font-size: 0.88rem; }
+  .search-input       { font-size: 0.82rem; }
+  .sidebar            { height: 42vh; }
+  .facility-list-item { padding: 10px 14px; min-height: 52px; }
+  .facility-item-icon { width: 30px; height: 30px; font-size: 0.82rem; }
+  .facility-item-name { font-size: 0.82rem; }
+  .recommended-badge  { font-size: 0.66rem; }
+}
 
 /* ═══════════════════════════════════════════════════════════
    FACILITY CARD — clickable (opens second modal)
@@ -1640,48 +1848,20 @@ html, body {
   background: #f3f4f6;
   border-color: #d1d5db;
 }
-#mapContainer {
-  overflow: hidden;
-}
 /* ═══════════════════════════════════════════════════════════
    v2.0 ADDITIONS
-   - Map fill fix
    - Assistant search styles
    - Interaction-visited badge
    - Mobile sidebar improvements
 ════════════════════════════════════════════════════════════ */
 
-/* ── MAP FILL FIX (TASK 1) ──
-   Remove the padding that was creating empty space around the SVG.
-   The SVG auto-fits via JS (autoFitMap), so no padding needed. */
-.map-container {
-  padding: 0 !important;
-  background: var(--white);
-}
-
-/* map-inner: remove border/radius so SVG goes edge-to-edge */
-.map-inner {
-  border-radius: 0;
-  border: none;
-  box-shadow: none;
-}
-
-/* SVG inside map-inner: fills the wrapper, transform handles position */
+/* SVG inside map-inner: JS sets explicit pixel width/height from viewBox;
+   CSS transform (translate + scale) handles all zoom/pan positioning. */
 .map-inner svg {
   position: absolute;
   top: 0;
   left: 0;
-  /* width/height driven by viewBox + JS transform, not CSS */
-  width: auto;
-  height: auto;
-  max-width: none;
-  max-height: none;
-}
-
-/* Give map-inner a relative context for the absolute SVG */
-.map-inner {
-  position: relative;
-  overflow: hidden;
+  /* width & height are set by JS to match viewBox pixel dimensions exactly */
 }
 
 /* ── ASSISTANT SEARCH (TASK 5) ─────────────────────────────── */
@@ -1797,16 +1977,6 @@ html, body {
   color: var(--gray-text);
 }
 
-/* ── MOBILE MAP CONTAINER (TASK 6) ─────────────────────────── */
-@media (max-width: 768px) {
-  .map-container { padding: 0 !important; }
-  .map-inner     { border-radius: 0; }
-}
-
-@media (max-width: 480px) {
-  .map-container { padding: 0 !important; }
-}
-
 /* ── HIGHLIGHTED BUILDING SHAPE ─────────────────────────────── */
 /* Stronger pulse animation on highlighted buildings */
 .map-inner svg .building-shape.highlighted {
@@ -1819,4 +1989,345 @@ html, body {
 @keyframes building-pulse {
   0%, 100% { filter: drop-shadow(0 0 6px rgba(246,172,2,0.7)); }
   50%       { filter: drop-shadow(0 0 14px rgba(246,172,2,1)); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STEP 5 — UI AESTHETIC POLISH
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Variable additions ── */
+:root {
+  --radius-xl:    22px;
+  --shadow-card:  0 2px 10px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-raise: 0 6px 22px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* ── Search: taller tap target, softer ring ── */
+.search-input {
+  height: 40px;
+  padding: 0 40px 0 38px;
+  border-radius: 50px;
+  font-size: 0.88rem;
+}
+
+.search-input:focus {
+  box-shadow: 0 0 0 3px rgba(246,172,2,0.22), 0 4px 14px rgba(0,0,0,0.12);
+}
+
+.search-clear-btn {
+  right: 12px;
+  padding: 5px 7px;
+  font-size: 0.8rem;
+  border-radius: 50%;
+}
+
+/* ── Sidebar list: cleaner separator, tighter spacing ── */
+.facility-list { padding: 4px 0 8px; }
+
+.facility-list-item {
+  padding: 11px 14px 11px 16px;
+  margin: 0 8px;
+  border-radius: 10px;
+  border-left: none;
+  border-bottom: none;
+  gap: 12px;
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.facility-list-item + .facility-list-item {
+  margin-top: 2px;
+}
+
+.facility-list-item:hover {
+  background: #fdf2f2;
+  border-left: none;
+  transform: translateX(0);
+  box-shadow: 0 2px 10px rgba(123,29,30,0.08);
+}
+
+.facility-list-item.active {
+  background: linear-gradient(135deg, #f9eaea, #fffafa);
+  border-left: none;
+  box-shadow: 0 2px 12px rgba(123,29,30,0.12);
+}
+
+.facility-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  font-size: 0.92rem;
+}
+
+.facility-list-item.active .facility-item-icon {
+  box-shadow: 0 3px 10px rgba(123,29,30,0.25);
+}
+
+.facility-item-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.building-item-count {
+  font-size: 0.71rem;
+  margin-top: 3px;
+  gap: 4px;
+}
+
+.recommended-badge {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+  gap: 4px;
+}
+
+.building-item-arrow {
+  opacity: 0.45;
+  font-size: 0.72rem;
+  transition: opacity 0.18s, transform 0.18s, color 0.18s;
+}
+
+.facility-list-item:hover .building-item-arrow,
+.facility-list-item.active .building-item-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+  color: var(--maroon);
+}
+
+/* ── Facility cards: softer, cleaner ── */
+.facility-card {
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0,0,0,0.07);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  padding: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.facility-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-raise);
+  border-color: rgba(123,29,30,0.18);
+  background: #fff;
+}
+
+.facility-card-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.facility-card-desc {
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: #777;
+}
+
+.facility-card-icon { font-size: 1.25rem; margin-bottom: 8px; }
+
+/* ── Building modal: tighter, cleaner ── */
+.building-modal-header { padding: 18px 20px 16px; }
+
+.modal-building-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.14);
+  font-size: 1.2rem;
+}
+
+.modal-title {
+  font-size: 1.06rem;
+  letter-spacing: -0.01em;
+}
+
+.modal-building-desc { font-size: 0.78rem; margin-top: 1px; }
+
+.building-modal-body { padding: 18px 20px 22px; }
+
+.facilities-section-label {
+  font-size: 0.71rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+  gap: 6px;
+  color: var(--maroon);
+}
+
+.facilities-grid { gap: 10px; }
+
+.building-modal-footer {
+  padding: 10px 16px;
+  background: #f9f9f9;
+}
+
+/* ── Buttons: larger tap targets, cleaner radius ── */
+.btn-assistant {
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(207,142,7,0.25);
+  transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+
+.btn-assistant:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(207,142,7,0.35);
+}
+
+.btn-close-facility {
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+.btn-close-assistant {
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-size: 0.8rem;
+  min-height: 36px;
+  letter-spacing: 0.01em;
+}
+
+/* ── Assistant modal ── */
+.assistant-modal-body { padding: 18px 20px; }
+
+.assistant-field { margin-bottom: 18px; }
+
+.assistant-label {
+  font-size: 0.73rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.assistant-search-input,
+.assistant-select {
+  border-radius: var(--radius-md);
+  font-size: 0.87rem;
+  min-height: 42px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.question-item {
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.answer-area { border-radius: var(--radius-md); }
+.answer-text { font-size: 0.87rem; line-height: 1.72; padding: 14px 16px; }
+
+/* ── Facility detail modal ── */
+.facility-detail-content { border-radius: 20px 20px 0 0; }
+
+.facility-detail-header { padding: 18px 20px 14px; }
+.facility-detail-body   { padding: 18px 20px; }
+
+.facility-detail-row {
+  padding: 10px 0;
+  gap: 14px;
+}
+
+.facility-detail-label { font-size: 0.72rem; gap: 6px; }
+
+.facility-detail-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.facility-detail-desc {
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.facility-detail-footer { padding: 10px 18px; }
+
+/* ── Map controls ── */
+.map-ctrl-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* ── Mobile polish (≤768px) ── */
+@media (max-width: 768px) {
+  .search-input { height: 40px; border-radius: 50px; }
+
+  .facility-list { padding: 6px 0 16px; }
+
+  .facility-list-item {
+    margin: 0 10px;
+    padding: 13px 14px;
+    border-radius: 12px;
+    min-height: 62px;
+    gap: 12px;
+  }
+
+  .facility-list-item + .facility-list-item { margin-top: 3px; }
+
+  .facility-item-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 1rem;
+  }
+
+  .facility-item-name  { font-size: 0.9rem; }
+  .building-item-count { font-size: 0.73rem; }
+  .recommended-badge   { font-size: 0.68rem; }
+
+  .modal-title          { font-size: 1rem; }
+  .modal-building-desc  { font-size: 0.77rem; }
+
+  .building-modal-body { padding: 14px 14px 20px !important; }
+
+  .facilities-section-label { font-size: 0.7rem; margin-bottom: 12px; }
+
+  .facilities-grid { gap: 8px; }
+
+  .facility-card        { padding: 12px; border-radius: 12px; }
+  .facility-card-name   { font-size: 0.82rem; }
+  .facility-card-desc   { font-size: 0.7rem; }
+
+  .question-item {
+    padding: 12px 14px;
+    min-height: 48px;
+    font-size: 0.86rem;
+    border-radius: 10px;
+  }
+
+  .btn-assistant,
+  .btn-close-assistant,
+  .btn-close-facility {
+    min-height: 40px;
+    padding: 8px 18px;
+    font-size: 0.83rem;
+    border-radius: 10px;
+  }
+
+  .answer-text { font-size: 0.88rem; line-height: 1.7; padding: 13px 14px; }
+}
+
+/* ── Small mobile (≤480px) ── */
+@media (max-width: 480px) {
+  .facility-list-item { margin: 0 6px; padding: 12px 12px; min-height: 58px; }
+  .facility-item-icon { width: 34px; height: 34px; border-radius: 9px; font-size: 0.9rem; }
+  .facility-item-name { font-size: 0.86rem; }
+
+  .modal-title         { font-size: 0.95rem; }
+
+  .facility-card { padding: 10px 11px; border-radius: 10px; }
+
+  .btn-assistant,
+  .btn-close-assistant,
+  .btn-close-facility { min-height: 42px; padding: 9px 16px; font-size: 0.82rem; }
 }

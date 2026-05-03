@@ -58,113 +58,76 @@
 
 // ── Road junction nodes ───────────────────────────────────────
 export const ROAD_NODES = {
-  // ── SOUTH MAIN ROAD (Main Gate → Gate 8)
-  S01:{x:110,y:700},
-  S02:{x:200,y:700},
-  S03:{x:300,y:700},
-  S04:{x:400,y:700},
-  S05:{x:500,y:700},
-  S06:{x:600,y:700},
-  S07:{x:700,y:700},
-  S08:{x:800,y:700},
-  S09:{x:900,y:700},
-  S10:{x:1000,y:700},
-
-  // ── NORTH ROAD (Gate 3 → Gate 5)
-  N01:{x:250,y:450},
-  N02:{x:350,y:430},
-  N03:{x:450,y:420},
-  N04:{x:550,y:400},
-  N05:{x:650,y:380},
-  N06:{x:720,y:350},
-  N07:{x:780,y:330},
-  N08:{x:880,y:340},
-
-  // ── WEST BLOCK (Gate 2 → Gate 3 inner)
-  W01:{x:160,y:500},
-  W02:{x:220,y:520},
-  W03:{x:280,y:550},
-
-  // ── ADMIN VERTICAL CONNECTOR
-  A01:{x:300,y:600},
-
-  // ── MID AREA (CEA / Engineering)
-  M01:{x:550,y:600},
-  M02:{x:650,y:600},
-
-  // ── AUDITORIUM VERTICAL
-  U01:{x:750,y:550},
-
-  // ── EAST BLOCK (CAS / Nursing loop)
-  E01:{x:950,y:650},
-  E02:{x:950,y:550},
-  E03:{x:950,y:450},
-  E04:{x:1050,y:450},
-  E05:{x:1150,y:450},
-  E06:{x:1150,y:600},
-
-  // ── PARKING / TSO EXTENSION
-  P01:{x:1100,y:750},
+  A: { x: 357, y: 637 },
+  B: { x: 333, y: 536 },
+  C: { x: 318, y: 550 },
+  D: { x: 296, y: 458 },
+  E: { x: 439, y: 616 },
+  F: { x: 418, y: 532 },
+  G: { x: 411, y: 517 },
+  H: { x: 390, y: 433 },
+  I: { x: 700, y: 681 },
+  J: { x: 667, y: 554 },
+  K: { x: 655, y: 473 },
+  L: { x: 632, y: 370 },
+  M: { x: 767, y: 675 },
+  N: { x: 734, y: 505 },
+  O: { x: 698, y: 358 },
+  P: { x: 813, y: 479 },
+  Q: { x: 786, y: 337 },
+  R: { x: 833, y: 679 },
+  S: { x: 910, y: 306 },
+  T: { x: 866, y: 669 },
+  U: { x: 931, y: 310 },
+  V: { x: 922, y: 670 },
+  W: { x: 971, y: 316 },
+  X: { x: 1130, y: 448 },
+  Y: { x: 1140, y: 340 },
+  Z: { x: 1186, y: 679 },
+  A1: { x: 1213, y: 465 }
 };
 
 
 // ─────────────────────────────────────────
 // ROAD EDGES (connections only where roads exist)
 // ─────────────────────────────────────────
-export const ROAD_EDGE_LIST = [
-
-  // ── SOUTH MAIN ROAD
-  ['S01','S02'],['S02','S03'],['S03','S04'],
-  ['S04','S05'],['S05','S06'],['S06','S07'],
-  ['S07','S08'],['S08','S09'],['S09','S10'],
-
-  // ── NORTH ROAD
-  ['N01','N02'],['N02','N03'],['N03','N04'],
-  ['N04','N05'],['N05','N06'],['N06','N07'],
-  ['N07','N08'],
-
-  // ── WEST BLOCK LOOP
-  ['W01','W02'],['W02','W03'],
-
-  // ── CONNECT WEST → SOUTH
-  ['W03','S03'],
-
-  // ── CONNECT WEST → NORTH
-  ['W02','N01'],
-
-  // ── ADMIN CONNECTOR
-  ['S03','A01'],
-  ['A01','N02'],
-
-  // ── MID CONNECTORS (CEA area)
-  ['S05','M01'],
-  ['M01','M02'],
-  ['M02','N04'],
-
-  // ── AUDITORIUM CONNECTOR
-  ['S07','U01'],
-  ['U01','N06'],
-
-  // ── EAST BLOCK LOOP (CAS/Nursing)
-  ['S10','E01'],
-  ['E01','E02'],
-  ['E02','E03'],
-  ['E03','E04'],
-  ['E04','E05'],
-  ['E05','E06'],
-  ['E06','S09'],
-
-  // ── PARKING EXTENSION
-  ['S09','P01'],
-];
+export const ROAD_EDGE_LIST = {
+  A: ['B', 'E'],
+  B: ['A', 'C','G'],
+  C: ['B', 'D'],
+  D: ['C', 'H'],
+  E: ['F', 'J'],
+  F: ['E', 'G', 'K'],
+  G: ['F', 'B', 'H'],
+  H: ['G','D', 'L'],
+  I: ['J', 'M'],
+  J: ['I', 'E', 'K'],
+  K: ['J', 'L'],
+  L: ['K', 'H', 'O'],
+  M: ['I', 'N', 'R'],
+  N: ['M', 'O', 'P'],
+  O: ['L', 'N', 'Q'],
+  P: ['N', 'Q'],
+  Q: ['O', 'P', 'S'],
+  R: ['M', 'T'],
+  S: ['Q', 'U'],
+  T: ['R', 'U', 'V'],
+  U: ['S', 'T', 'W'],
+  V: ['T', 'Z'],
+  W: ['U', 'Y'],
+  X: ['Y', 'A1'],
+  Y: ['W', 'X'],
+  Z: ['V', 'A1'],
+  A1: ['Z', 'X']
+};
 
 
 // Build adjacency list
 export const ROAD_GRAPH = {};
-ROAD_EDGE_LIST.forEach(([a, b]) => {
-  (ROAD_GRAPH[a] = ROAD_GRAPH[a] || []).push(b);
-  (ROAD_GRAPH[b] = ROAD_GRAPH[b] || []).push(a);
-});
+
+for (let node in ROAD_EDGE_LIST) {
+  ROAD_GRAPH[node] = ROAD_EDGE_LIST[node];
+}
 
 /**
  * BUILDING_ENTRIES
@@ -173,10 +136,10 @@ ROAD_EDGE_LIST.forEach(([a, b]) => {
  * resolved automatically by findNearestNode() at routing time.
  */
 export const BUILDING_ENTRIES = {
-  'UNIVERSITY MUSEUM BUILDING': { x: 112, y: 694 },
-  'COLLEGE OF EDUCATION BUILDING': { x: 173, y: 694 },
-  'COLLEGE OF EDUCATION BUILDING EXTENSION 1': { x: 228, y: 694 },
-  'GRADUATE SCHOOL BUILDING 2': { x: 279, y: 470 },
+  'UNIVERSITY MUSEUM BUILDING': { x: 155, y: 599 },
+  'COLLEGE OF EDUCATION BUILDING': { x: 188, y: 591 },
+  'COLLEGE OF EDUCATION BUILDING EXTENSION 1': { x: 239, y: 578 },
+  'GRADUATE SCHOOL BUILDING 2': { x: 291, y: 555 },
   'GRADUATE SCHOOL BUILDING': { x: 330, y: 470 },
   'INTEGRATED SCIENCE LABORATORY BUILDING': { x: 365, y: 470 },
   'PROCUREMENT AND SUPPLY BUILDING': { x: 275, y: 418 },

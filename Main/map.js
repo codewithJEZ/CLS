@@ -24,6 +24,101 @@ const mapContainer   = document.getElementById('mapContainer');
 const mapStatusLabel = document.getElementById('mapStatusLabel');
 const mapPlaceholder = document.getElementById('mapPlaceholder');
 
+// ── ANIMATION STATE ───────────────────────────────────────────
+let velX = 0, velY = 0;          // drag velocity (px / frame at 60 fps)
+let lastMoveTime  = 0;            // timestamp of last pointer-move sample
+let inertiaId     = null;         // rAF handle — inertia coasting loop
+let zoomAnimId    = null;         // rAF handle — smooth zoom loop
+const zoomTarget  = { scale: 1, transX: 0, transY: 0 }; // zoom destination
+
+function cancelInertia() {
+  if (inertiaId) { cancelAnimationFrame(inertiaId); inertiaId = null; }
+  velX = 0; velY = 0;
+}
+
+function cancelZoomAnim() {
+  if (zoomAnimId) { cancelAnimationFrame(zoomAnimId); zoomAnimId = null; }
+}
+
+function setWillChange(active) {
+  const svg = mapInner.querySelector('svg');
+  if (svg) svg.style.willChange = active ? 'transform' : 'auto';
+}
+
+// Momentum coasting after a drag release
+function startInertia() {
+  const FRICTION = 0.88;
+  const MIN_VEL  = 0.4;
+  function step() {
+    velX *= FRICTION;
+    velY *= FRICTION;
+    const prevX = state.mapTransX;
+    const prevY = state.mapTransY;
+    state.mapTransX += velX;
+    state.mapTransY += velY;
+    applyMapTransform();
+    // Stop when slow enough OR when clamping absorbed movement (hit a wall)
+    const stuck = Math.abs(state.mapTransX - prevX) < 0.1 &&
+                  Math.abs(state.mapTransY - prevY) < 0.1;
+    if ((Math.abs(velX) < MIN_VEL && Math.abs(velY) < MIN_VEL) || stuck) {
+      inertiaId = null;
+      setWillChange(false);
+      return;
+    }
+    inertiaId = requestAnimationFrame(step);
+  }
+  if (Math.abs(velX) >= MIN_VEL || Math.abs(velY) >= MIN_VEL) {
+    inertiaId = requestAnimationFrame(step);
+  } else {
+    setWillChange(false);
+  }
+}
+
+// Smooth zoom: accumulate the destination across wheel ticks, lerp toward it each frame.
+// Each wheel event shifts zoomTarget further; the animation chases it — this is what
+// makes fast scroll feel fluid instead of stepping.
+function smoothZoomAtPoint(d, px, py) {
+  cancelInertia();
+  if (!zoomAnimId) {            // seed targets from live state
+    zoomTarget.scale  = state.mapScale;
+    zoomTarget.transX = state.mapTransX;
+    zoomTarget.transY = state.mapTransY;
+  }
+  const prev = zoomTarget.scale;
+  zoomTarget.scale  = Math.min(Math.max(zoomTarget.scale + d, 0.5), 4);
+  const ratio = zoomTarget.scale / prev;
+  zoomTarget.transX = px - ratio * (px - zoomTarget.transX);
+  zoomTarget.transY = py - ratio * (py - zoomTarget.transY);
+  setWillChange(true);
+  if (!zoomAnimId) animateZoom();
+}
+
+function animateZoom() {
+  const LERP = 0.2;
+  const prevS = state.mapScale;
+  const prevX = state.mapTransX;
+  const prevY = state.mapTransY;
+  state.mapScale  += (zoomTarget.scale  - state.mapScale)  * LERP;
+  state.mapTransX += (zoomTarget.transX - state.mapTransX) * LERP;
+  state.mapTransY += (zoomTarget.transY - state.mapTransY) * LERP;
+  applyMapTransform();   // clamps state.mapTransX/Y in-place
+  // Convergence check: stop when state barely moves (either close to target,
+  // or pinned to a clamp wall — both register as "done")
+  const moved = Math.abs(state.mapScale  - prevS) > 0.0004 ||
+                Math.abs(state.mapTransX - prevX) > 0.06   ||
+                Math.abs(state.mapTransY - prevY) > 0.06;
+  if (moved) {
+    zoomAnimId = requestAnimationFrame(animateZoom);
+  } else {
+    state.mapScale  = zoomTarget.scale;
+    state.mapTransX = zoomTarget.transX;
+    state.mapTransY = zoomTarget.transY;
+    applyMapTransform();
+    zoomAnimId = null;
+    setWillChange(false);
+  }
+}
+
 // ── SVG MAP LOAD ──────────────────────────────────────────────
 function handleSVGLoad() {
   fetch('assets/map.svg')
@@ -59,11 +154,18 @@ function handleSVGLoad() {
 function autoFitMap(svg) {
   const vb = svg.viewBox.baseVal;
   if (!vb || vb.width === 0 || vb.height === 0) return;
+
+  // Set SVG to render at exactly viewBox pixel dimensions (1px per viewBox unit).
+  // Without this, an absolutely-positioned SVG with no width/height attributes
+  // renders at browser-default size (e.g. 300×150), making the scale math wrong.
+  svg.style.width  = vb.width  + 'px';
+  svg.style.height = vb.height + 'px';
+
   const cW = mapContainer.clientWidth;
   const cH = mapContainer.clientHeight;
   const scale = Math.min(cW / vb.width, cH / vb.height);
-  state.mapScale = scale;
-  state.mapTransX = (cW - vb.width * scale) / 2;
+  state.mapScale  = scale;
+  state.mapTransX = (cW - vb.width  * scale) / 2;
   state.mapTransY = (cH - vb.height * scale) / 2;
   applyMapTransform();
 }
@@ -104,59 +206,112 @@ function attachBuildingClickEvents(svg) {
 
 // ── MAP CONTROLS ──────────────────────────────────────────────
 function initMapControls() {
-  document.getElementById('zoomInBtn').addEventListener('click', () => zoomAt(0.08));
-  document.getElementById('zoomOutBtn').addEventListener('click', () => zoomAt(-0.08));
+  // Zoom buttons: smooth animated zoom toward container center
+  document.getElementById('zoomInBtn').addEventListener('click', () => {
+    const r = mapContainer.getBoundingClientRect();
+    smoothZoomAtPoint(0.18, r.width / 2, r.height / 2);
+  });
+  document.getElementById('zoomOutBtn').addEventListener('click', () => {
+    const r = mapContainer.getBoundingClientRect();
+    smoothZoomAtPoint(-0.18, r.width / 2, r.height / 2);
+  });
   document.getElementById('resetViewBtn').addEventListener('click', resetView);
 
+  // Wheel: each tick shifts zoomTarget further; animation catches up smoothly
   mapContainer.addEventListener('wheel', e => {
     e.preventDefault();
     const rect = mapContainer.getBoundingClientRect();
-    zoomAtPoint(e.deltaY < 0 ? 0.12 : -0.12, e.clientX - rect.left, e.clientY - rect.top);
+    smoothZoomAtPoint(e.deltaY < 0 ? 0.13 : -0.13, e.clientX - rect.left, e.clientY - rect.top);
   }, { passive: false });
 
+  // ── Mouse drag ──
   mapContainer.addEventListener('mousedown', e => {
     if (e.button !== 0) return;
-    state.isDragging = true; state.wasDragging = false;
-    state.dragStart = { x: e.clientX - state.mapTransX, y: e.clientY - state.mapTransY };
+    cancelInertia();
+    cancelZoomAnim();
+    state.isDragging  = true;
+    state.wasDragging = false;
+    state.dragStart   = { x: e.clientX - state.mapTransX, y: e.clientY - state.mapTransY };
+    velX = 0; velY = 0;
+    lastMoveTime = performance.now();
     mapContainer.style.cursor = 'grabbing';
+    setWillChange(true);
     e.preventDefault();
   });
+
   window.addEventListener('mousemove', e => {
     if (!state.isDragging) return;
+    const now  = performance.now();
+    const dt   = now - lastMoveTime;
+    const newX = e.clientX - state.dragStart.x;
+    const newY = e.clientY - state.dragStart.y;
+    // Track velocity; ignore stale samples (lag spike or user paused)
+    if (dt > 0 && dt < 100) {
+      velX = (newX - state.mapTransX) / dt * 16;
+      velY = (newY - state.mapTransY) / dt * 16;
+    } else if (dt >= 100) {
+      velX = 0; velY = 0;    // paused → no coasting
+    }
+    lastMoveTime      = now;
     state.wasDragging = true;
-    state.mapTransX = e.clientX - state.dragStart.x;
-    state.mapTransY = e.clientY - state.dragStart.y;
+    state.mapTransX   = newX;
+    state.mapTransY   = newY;
     applyMapTransform();
   });
+
   window.addEventListener('mouseup', () => {
     if (!state.isDragging) return;
     state.isDragging = false;
     mapContainer.style.cursor = 'grab';
     setTimeout(() => { state.wasDragging = false; }, 50);
+    startInertia();
   });
 
+  // ── Touch ──
   mapContainer.addEventListener('touchstart', e => {
     e.preventDefault();
+    cancelInertia();
     if (e.touches.length === 1) {
-      state.isDragging = true; state.wasDragging = false; state.lastTouchDist = null;
-      state.dragStart = { x: e.touches[0].clientX - state.mapTransX, y: e.touches[0].clientY - state.mapTransY };
+      state.isDragging    = true;
+      state.wasDragging   = false;
+      state.lastTouchDist = null;
+      state.dragStart = {
+        x: e.touches[0].clientX - state.mapTransX,
+        y: e.touches[0].clientY - state.mapTransY,
+      };
+      velX = 0; velY = 0;
+      lastMoveTime = performance.now();
+      setWillChange(true);
     } else if (e.touches.length === 2) {
-      state.isDragging = false; state.lastTouchDist = touchDist(e.touches);
+      state.isDragging    = false;
+      state.lastTouchDist = touchDist(e.touches);
     }
   }, { passive: false });
 
   mapContainer.addEventListener('touchmove', e => {
     e.preventDefault();
     if (e.touches.length === 1 && state.isDragging) {
+      const now  = performance.now();
+      const dt   = now - lastMoveTime;
+      const newX = e.touches[0].clientX - state.dragStart.x;
+      const newY = e.touches[0].clientY - state.dragStart.y;
+      if (dt > 0 && dt < 100) {
+        velX = (newX - state.mapTransX) / dt * 16;
+        velY = (newY - state.mapTransY) / dt * 16;
+      } else if (dt >= 100) {
+        velX = 0; velY = 0;
+      }
+      lastMoveTime      = now;
       state.wasDragging = true;
-      state.mapTransX = e.touches[0].clientX - state.dragStart.x;
-      state.mapTransY = e.touches[0].clientY - state.dragStart.y;
+      state.mapTransX   = newX;
+      state.mapTransY   = newY;
       applyMapTransform();
     } else if (e.touches.length === 2 && state.lastTouchDist !== null) {
-      const nd = touchDist(e.touches);
+      const nd   = touchDist(e.touches);
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const rect = mapContainer.getBoundingClientRect();
+      // Pinch: direct update — follows fingers without smoothing lag
       zoomAtPoint((nd / state.lastTouchDist - 1) * state.mapScale * 0.6, midX - rect.left, midY - rect.top);
       state.lastTouchDist = nd;
     }
@@ -164,26 +319,54 @@ function initMapControls() {
 
   mapContainer.addEventListener('touchend', e => {
     if (e.touches.length === 0) {
-      state.isDragging = false; state.lastTouchDist = null;
+      state.isDragging    = false;
+      state.lastTouchDist = null;
       setTimeout(() => { state.wasDragging = false; }, 50);
+      startInertia();
     } else if (e.touches.length === 1) {
-      state.lastTouchDist = null; state.isDragging = true;
-      state.dragStart = { x: e.touches[0].clientX - state.mapTransX, y: e.touches[0].clientY - state.mapTransY };
+      state.lastTouchDist = null;
+      state.isDragging    = true;
+      state.dragStart = {
+        x: e.touches[0].clientX - state.mapTransX,
+        y: e.touches[0].clientY - state.mapTransY,
+      };
+      velX = 0; velY = 0;
+      lastMoveTime = performance.now();
     }
   }, { passive: false });
 }
 
 function touchDist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
-function zoomAt(d) { const r = mapContainer.getBoundingClientRect(); zoomAtPoint(d, r.width / 2, r.height / 2); }
+
+// Direct (non-animated) zoom — pinch gestures only; smoothing would fight the fingers
 function zoomAtPoint(d, px, py) {
   const prev = state.mapScale;
-  state.mapScale += (Math.min(Math.max(state.mapScale + d, 0.6), 3.5) - state.mapScale) * 0.3;
+  state.mapScale = Math.min(Math.max(state.mapScale + d, 0.5), 4);
   const ratio = state.mapScale / prev;
   state.mapTransX = px - ratio * (px - state.mapTransX);
   state.mapTransY = py - ratio * (py - state.mapTransY);
   applyMapTransform();
 }
+
+// Clamp mapTransX/Y so the map always keeps minOverlap pixels visible in the container.
+function clampTransform() {
+  const svg = mapInner.querySelector('svg');
+  if (!svg) return;
+  const vb = svg.viewBox.baseVal;
+  if (!vb || vb.width === 0) return;
+
+  const cW = mapContainer.clientWidth;
+  const cH = mapContainer.clientHeight;
+  const svgW = vb.width  * state.mapScale;
+  const svgH = vb.height * state.mapScale;
+  const minOverlap = 80; // px of map that must remain visible inside the container
+
+  state.mapTransX = Math.max(minOverlap - svgW, Math.min(cW - minOverlap, state.mapTransX));
+  state.mapTransY = Math.max(minOverlap - svgH, Math.min(cH - minOverlap, state.mapTransY));
+}
+
 function applyMapTransform() {
+  clampTransform();
   const svg = mapInner.querySelector('svg');
   if (svg) svg.style.transform = `translate(${state.mapTransX}px,${state.mapTransY}px) scale(${state.mapScale})`;
 }

@@ -4,7 +4,6 @@ import { recordInteraction } from './interaction.js';
 
 // ── DOM refs ──────────────────────────────────────────────────
 const facilityList       = document.getElementById('facilityList');
-const facilityFilter     = document.getElementById('facilityFilter');
 const sidebar            = document.getElementById('sidebar');
 const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
 const sidebarTab         = document.getElementById('sidebarTab');
@@ -171,10 +170,10 @@ export function buildSidebarBuildingList(filter) {
 
       li.classList.add('active');
 
-      // 🔥 record visit
       recordInteraction(b.id);
 
-      // 🎯 zoom + modal
+      if (window.innerWidth <= 768) sidebar.classList.add('collapsed');
+
       zoomToBuilding(b.id);
       setTimeout(() => _openBuildingModal(b), 420);
     });
@@ -184,9 +183,45 @@ export function buildSidebarBuildingList(filter) {
 }
 
 export function initSidebar() {
-  sidebarCollapseBtn.addEventListener('click', () => { sidebar.classList.add('collapsed'); sidebarTab.classList.add('visible'); });
-  sidebarTab.addEventListener('click', () => { sidebar.classList.remove('collapsed'); sidebarTab.classList.remove('visible'); });
-  facilityFilter.addEventListener('input', e => buildSidebarBuildingList(e.target.value));
+  sidebarCollapseBtn.addEventListener('click', () => {
+    sidebar.classList.add('collapsed');
+    if (window.innerWidth > 768) sidebarTab.classList.add('visible');
+  });
+
+  sidebarTab.addEventListener('click', () => {
+    sidebar.classList.remove('collapsed');
+    sidebarTab.classList.remove('visible');
+  });
+
+  const sidebarHeader = sidebar.querySelector('.sidebar-header');
+
+  sidebarHeader.addEventListener('click', e => {
+    if (e.target.closest('.sidebar-collapse-btn')) return;
+    if (window.innerWidth <= 768) {
+      sidebar.classList.toggle('collapsed');
+    }
+  });
+
+  // Touch swipe gesture on the sheet header
+  let _touchStartY = 0;
+  let _touchStartT = 0;
+
+  sidebarHeader.addEventListener('touchstart', e => {
+    _touchStartY = e.touches[0].clientY;
+    _touchStartT = Date.now();
+  }, { passive: true });
+
+  sidebarHeader.addEventListener('touchend', e => {
+    if (window.innerWidth > 768) return;
+    const dy = e.changedTouches[0].clientY - _touchStartY;
+    const v  = Math.abs(dy) / (Date.now() - _touchStartT);
+    if (dy > 40 || (v > 0.3 && dy > 10))  sidebar.classList.add('collapsed');
+    if (dy < -40 || (v > 0.3 && dy < -10)) sidebar.classList.remove('collapsed');
+  }, { passive: true });
+
+  if (window.innerWidth <= 768) {
+    sidebar.classList.add('collapsed');
+  }
 }
 
 export function setActiveSidebarItem(id) {
