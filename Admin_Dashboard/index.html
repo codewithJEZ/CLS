@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard — Campus Locator System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <style>
     /* ── Featured checkbox in Building form ── */
@@ -21,10 +24,12 @@
       transition: border-color .2s, background .2s;
       user-select: none;
     }
+
     .featured-checkbox-wrap:hover {
       border-color: #F6AC02;
       background: #fffbf0;
     }
+
     .featured-checkbox-wrap input[type="checkbox"] {
       width: 17px;
       height: 17px;
@@ -32,10 +37,12 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-    .featured-checkbox-wrap input[type="checkbox"]:checked + .featured-checkbox-label {
+
+    .featured-checkbox-wrap input[type="checkbox"]:checked+.featured-checkbox-label {
       color: #b07d00;
       font-weight: 600;
     }
+
     .featured-checkbox-label {
       font-size: .9rem;
       color: #4b5563;
@@ -43,10 +50,12 @@
       align-items: center;
       gap: 6px;
     }
+
     .featured-checkbox-label .bi-star-fill {
       color: #F6AC02;
       font-size: .95rem;
     }
+
     .form-hint {
       font-size: .78rem;
       color: #9ca3af;
@@ -67,7 +76,11 @@
       border: 1px solid #fde68a;
       white-space: nowrap;
     }
-    .badge-featured .bi { font-size: .8rem; color: #F6AC02; }
+
+    .badge-featured .bi {
+      font-size: .8rem;
+      color: #F6AC02;
+    }
 
     .badge-not-featured {
       display: inline-flex;
@@ -98,15 +111,25 @@
       cursor: pointer;
       transition: background .18s, border-color .18s;
     }
-    .btn-feature:hover { background: #fef3c7; border-color: #F6AC02; }
+
+    .btn-feature:hover {
+      background: #fef3c7;
+      border-color: #F6AC02;
+    }
+
     .btn-feature.remove {
       border-color: #e5e7eb;
       background: #f9fafb;
       color: #6b7280;
     }
-    .btn-feature.remove:hover { background: #f3f4f6; border-color: #d1d5db; }
+
+    .btn-feature.remove:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
   </style>
 </head>
+
 <body>
 
   <!-- SIDEBAR OVERLAY (mobile) -->
@@ -121,7 +144,7 @@
     <div class="sidebar-logo">
       <div class="logo-circle">
         <img src="../assets/logo.png" alt="PSU Logo"
-             onerror="this.style.display='none';document.getElementById('sLogoFb').style.display='flex';" />
+          onerror="this.style.display='none';document.getElementById('sLogoFb').style.display='flex';" />
         <div id="sLogoFb" class="logo-fb" style="display:none;"><i class="bi bi-mortarboard-fill"></i></div>
       </div>
       <div class="logo-text menu-text">
@@ -241,6 +264,9 @@
         <button class="quick-btn" onclick="switchPage('assistance')">
           <i class="bi bi-plus-circle"></i> Add Q&amp;A
         </button>
+        <button class="quick-btn" onclick="window.open('../Main/index.html', '_blank')">
+          <i class="bi bi-map-fill"></i> Go to User Side
+        </button>
       </div>
 
     </main>
@@ -254,7 +280,8 @@
         <h2 class="section-heading">Buildings</h2>
         <div class="search-wrap">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" class="search-input" id="searchBuildings" placeholder="Search buildings…" oninput="filterTable(this, 'tableBuildings')">
+          <input type="text" class="search-input" id="searchBuildings" placeholder="Search buildings…"
+            oninput="filterTable(this, 'tableBuildings')">
         </div>
         <button class="btn-add" onclick="openModal('buildingModal')">
           <i class="bi bi-plus-lg"></i> Add Building
@@ -296,7 +323,8 @@
         <h2 class="section-heading">Facilities</h2>
         <div class="search-wrap">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" class="search-input" id="searchFacilities" placeholder="Search facilities…" oninput="filterTable(this, 'tableFacilities')">
+          <input type="text" class="search-input" id="searchFacilities" placeholder="Search facilities…"
+            oninput="filterTable(this, 'tableFacilities')">
         </div>
         <button class="btn-add" onclick="openModal('facilityModal')">
           <i class="bi bi-plus-lg"></i> Add Facility
@@ -340,7 +368,8 @@
         <h2 class="section-heading">Assistance (Q&amp;A)</h2>
         <div class="search-wrap">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" class="search-input" id="searchAssistance" placeholder="Search Q&amp;A…" oninput="filterTable(this, 'tableAssistance')">
+          <input type="text" class="search-input" id="searchAssistance" placeholder="Search Q&amp;A…"
+            oninput="filterTable(this, 'tableAssistance')">
         </div>
         <button class="btn-add" onclick="openModal('qaModal')">
           <i class="bi bi-plus-lg"></i> Add Q&amp;A
@@ -391,7 +420,8 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-lbl" for="buildingName">Building Name <span style="color:var(--maroon)">*</span></label>
-            <input type="text" id="buildingName" name="name" class="form-inp" placeholder="e.g. Main Building" required />
+            <input type="text" id="buildingName" name="name" class="form-inp" placeholder="e.g. Main Building"
+              required />
           </div>
           <div class="form-group">
             <label class="form-lbl" for="buildingCode">Building Code <span style="color:var(--maroon)">*</span></label>
@@ -399,7 +429,8 @@
           </div>
           <div class="form-group">
             <label class="form-lbl" for="buildingDescription">Description</label>
-            <textarea id="buildingDescription" name="description" class="form-inp form-ta" placeholder="Brief description..."></textarea>
+            <textarea id="buildingDescription" name="description" class="form-inp form-ta"
+              placeholder="Brief description..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-lbl">Recommended Building</label>
@@ -439,19 +470,23 @@
           </div>
           <div class="form-group">
             <label class="form-lbl" for="facilityName">Facility Name <span style="color:var(--maroon)">*</span></label>
-            <input type="text" id="facilityName" name="name" class="form-inp" placeholder="e.g. Registrar's Office" required />
+            <input type="text" id="facilityName" name="name" class="form-inp" placeholder="e.g. Registrar's Office"
+              required />
           </div>
           <div class="form-group">
             <label class="form-lbl" for="facilityType">Type <span style="color:var(--maroon)">*</span></label>
-            <input type="text" id="facilityType" name="type" class="form-inp" placeholder="e.g. Office, Laboratory, Classroom" required />
+            <input type="text" id="facilityType" name="type" class="form-inp"
+              placeholder="e.g. Office, Laboratory, Classroom" required />
           </div>
           <div class="form-group">
             <label class="form-lbl" for="facilityDescription">Description</label>
-            <textarea id="facilityDescription" name="description" class="form-inp form-ta" placeholder="Brief description..."></textarea>
+            <textarea id="facilityDescription" name="description" class="form-inp form-ta"
+              placeholder="Brief description..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-lbl" for="facilityFloor">Floor <span style="color:var(--maroon)">*</span></label>
-            <input type="text" id="facilityFloor" name="floor" class="form-inp" placeholder="e.g. Ground Floor, 2nd Floor" required />
+            <input type="text" id="facilityFloor" name="floor" class="form-inp"
+              placeholder="e.g. Ground Floor, 2nd Floor" required />
           </div>
         </div>
         <div class="modal-footer">
@@ -481,11 +516,13 @@
           </div>
           <div class="form-group">
             <label class="form-lbl" for="qaQuestion">Question <span style="color:var(--maroon)">*</span></label>
-            <input type="text" id="qaQuestion" name="question" class="form-inp" placeholder="e.g. Where is the Registrar?" required />
+            <input type="text" id="qaQuestion" name="question" class="form-inp"
+              placeholder="e.g. Where is the Registrar?" required />
           </div>
           <div class="form-group">
             <label class="form-lbl" for="qaAnswer">Answer <span style="color:var(--maroon)">*</span></label>
-            <textarea id="qaAnswer" name="answer" class="form-inp form-ta" placeholder="e.g. Ground floor, Room 101" required></textarea>
+            <textarea id="qaAnswer" name="answer" class="form-inp form-ta" placeholder="e.g. Ground floor, Room 101"
+              required></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -511,7 +548,8 @@
         <button class="modal-close" onclick="closeModal('deleteModal')"><i class="bi bi-x-lg"></i></button>
       </div>
       <div class="modal-body" style="padding:24px 22px 8px;">
-        <p style="font-size:.93rem;color:#374151;">Are you sure you want to delete this record? This action cannot be undone.</p>
+        <p style="font-size:.93rem;color:#374151;">Are you sure you want to delete this record? This action cannot be
+          undone.</p>
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
@@ -522,4 +560,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>
