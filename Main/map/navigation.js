@@ -242,6 +242,8 @@ export function drawRoute(startId, destId) {
   showClearRouteBtn();
 }
 
+
+
 export function clearRoute() {
   const overlay = document.getElementById('routeOverlay');
   if (overlay) overlay.remove();

@@ -31,7 +31,7 @@ if (btn360 && videoModal && video && source && close360) {
   let scale = 1;
   let tilt = 0;
 
-  const SPEED = 0.02; // mas responsive
+  const SPEED = 0.015; // mas responsive
 
   // OPEN
   btn360.onclick = () => {

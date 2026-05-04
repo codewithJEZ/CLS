@@ -2,21 +2,20 @@ import { state } from '../state.js';
 import { recordInteraction } from './interaction.js';
 import { zoomToBuilding } from '../map.js';
 
-// ── DOM refs ──────────────────────────────────────────────────
 const searchInput    = document.getElementById('searchInput');
 const searchResults  = document.getElementById('searchResults');
 const searchClearBtn = document.getElementById('searchClearBtn');
 
-// ── Callback registry (avoids circular import with script.js) ─
 let _escapeHTML  = s => String(s);
 let _escapeRegex = s => s;
+let _openBuildingModal = () => {};
 
-export function registerSearchCallbacks({ escapeHTML, escapeRegex }) {
+export function registerSearchCallbacks({ escapeHTML, escapeRegex, openBuildingModal }) {
   _escapeHTML  = escapeHTML;
   _escapeRegex = escapeRegex;
+  if (openBuildingModal) _openBuildingModal = openBuildingModal;
 }
 
-// ── SEARCH (TASK 2) ───────────────────────────────────────────
 export function initSearch() {
   searchInput.addEventListener('input', handleSearch);
   searchInput.addEventListener('focus', () => { if (searchInput.value.trim()) showSearchResults(searchInput.value); });
@@ -54,12 +53,14 @@ export function showSearchResults(query) {
   const lq = query.toLowerCase();
   const matches = [];
   state.BUILDINGS.forEach(b => {
-    if (b.name.toLowerCase().includes(lq))
-      matches.push({ name: b.name, sub: `${(b.facilities || []).length} facilities`, id: b.id, icon: 'bi-building' });
     (b.facilities || []).forEach(f => {
       if (f.name.toLowerCase().includes(lq) || (f.desc || '').toLowerCase().includes(lq))
-        matches.push({ name: f.name, sub: b.name, id: b.id, icon: f.icon || 'bi-grid' });
+        matches.push({ name: f.name, sub: b.name, id: b.id, icon: f.icon || 'bi-grid', isBuilding: false, facility: f, building: b });
     });
+    const nameMatch = b.name.toLowerCase().includes(lq);
+    const codeMatch = b.code && b.code.toLowerCase().includes(lq);
+    if (nameMatch || codeMatch)
+      matches.push({ name: b.name, sub: `${(b.facilities || []).length} facilities`, id: b.id, icon: 'bi-building', isBuilding: true });
   });
 
   searchResults.innerHTML = '';
@@ -78,11 +79,32 @@ export function showSearchResults(query) {
         searchClearBtn.classList.remove('visible');
         recordInteraction(m.id);
         zoomToBuilding(m.id);
+        if (!m.isBuilding) {
+          setTimeout(() => {
+            _openBuildingModal(m.building);
+            setTimeout(() => scrollToFacility(m.facility.name), 450);
+          }, 420);
+        }
       });
       searchResults.appendChild(item);
     });
   }
   searchResults.classList.add('open');
+}
+
+function scrollToFacility(facilityName) {
+  const grid = document.getElementById('modalFacilitiesGrid');
+  if (!grid) return;
+  const lName = facilityName.toLowerCase();
+  const cards = grid.querySelectorAll('.facility-card');
+  for (const card of cards) {
+    if (card.textContent.trim().toLowerCase() === lName) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.outline = '2px solid var(--yellow, #F6AC02)';
+      setTimeout(() => { card.style.outline = ''; }, 2000);
+      break;
+    }
+  }
 }
 
 export function highlightMatch(text, query) {

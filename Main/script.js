@@ -71,7 +71,7 @@ registerMapCallbacks({
 });
 registerInteractionCallbacks({ buildSidebarBuildingList });
 registerSidebarCallbacks({ escapeHTML, triggerRipple, openBuildingModal });
-registerSearchCallbacks({ escapeHTML, escapeRegex });
+registerSearchCallbacks({ escapeHTML, escapeRegex, openBuildingModal });
 registerAssistantCallbacks({ updateResetVisibility, escapeHTML, escapeRegex });
 registerModalCallbacks({ escapeHTML, setStartBuilding, buildingModal, facilityDetailModal });
 registerNavigationCallbacks({ escapeHTML, handleBuildingClick });
