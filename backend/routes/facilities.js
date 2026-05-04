@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
       f.floor,
       f.created_at
     FROM facilities f
-    JOIN buildings b ON f.building_id = b.id
+    LEFT JOIN buildings b ON f.building_id = b.id
     ORDER BY b.name ASC, f.name ASC
   `;
 

@@ -7,10 +7,7 @@
  * ============================================================
  */
 
-const API_BASE =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://cls-production-eba9.up.railway.app';
+const API_BASE ='http://localhost:3000';
 
 // Tracks the ID being edited. null = ADD mode, number = EDIT mode.
 let editingBuildingId  = null;

@@ -12,7 +12,7 @@ router.get('/', (req, res) => {
       a.answer,
       a.created_at
     FROM assistance a
-    JOIN buildings b ON a.building_id = b.id
+    LEFT JOIN buildings b ON a.building_id = b.id
     ORDER BY b.name ASC, a.question ASC
   `;
 
