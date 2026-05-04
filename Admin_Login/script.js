@@ -104,13 +104,19 @@ async function handleLogin() {
   await new Promise(resolve => setTimeout(resolve, 800));
 
   // ── CHANGED: /api/admin/login  →  /admin/login ─────────────
-  try {
-    const res  = await fetch('http://localhost:3000/admin/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ username, password })
-    });
-    const data = await res.json();
+ const BASE_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://cls-production-6400.up.railway.app';
+
+try {
+  const res = await fetch(`${BASE_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
 
     if (data.success) {
       localStorage.setItem('admin', username);

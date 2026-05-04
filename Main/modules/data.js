@@ -2,7 +2,10 @@ import { state } from '../state.js';
 
 export async function loadBuildings() {
   try {
-    const BASE_URL = 'http://localhost:3000';
+    const BASE_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://cls-production-6400.up.railway.app';
 
     const [bRes, fRes, aRes] = await Promise.all([
       fetch(`${BASE_URL}/buildings`),
