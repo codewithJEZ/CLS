@@ -2,51 +2,65 @@ import { state } from '../state.js';
 
 export async function loadBuildings() {
   try {
-    const [bRes, fRes, aRes] = await Promise.all([
-      fetch('http://localhost:3000/buildings'),
-      fetch('http://localhost:3000/facilities'),
-      fetch('http://localhost:3000/assistance'),
-    ]);
-    const bJson = await bRes.json();
-    if (!bJson.success) { state.BUILDINGS = []; state.QA_DATA = {}; return; }
-    const fJson = await fRes.json();
-    const allFacilities = fJson.success ? fJson.data : [];
-    const aJson = await aRes.json();
-    const allQA = aJson.success ? aJson.data : [];
+    const BASE_URL = 'http://localhost:3000';
 
-    state.BUILDINGS = bJson.data.map(b => ({
+    const [bRes, fRes, aRes] = await Promise.all([
+      fetch(`${BASE_URL}/buildings`),
+      fetch(`${BASE_URL}/facilities`),
+      fetch(`${BASE_URL}/assistance`),
+    ]);
+
+    // SAFE PARSE (kahit success/data or raw array)
+    const bRaw = await bRes.json();
+    const fRaw = await fRes.json();
+    const aRaw = await aRes.json();
+
+    const buildingsData = Array.isArray(bRaw) ? bRaw : (bRaw.data || []);
+    const facilitiesData = Array.isArray(fRaw) ? fRaw : (fRaw.data || []);
+    const assistanceData = Array.isArray(aRaw) ? aRaw : (aRaw.data || []);
+
+    // BUILDINGS
+    state.BUILDINGS = buildingsData.map(b => ({
       id: String(b.id),
-      name: b.name,
-      svgId: b.name.trim().toUpperCase(),
+      name: b.name || '',
+      svgId: (b.name || '').trim().toUpperCase(),
       desc: b.description || '',
       recommended: Number(b.is_featured) === 1,
-      facilities: allFacilities
-        .filter(f => f.building_id == b.id)
+      facilities: facilitiesData
+        .filter(f => String(f.building_id) === String(b.id))
         .map(f => ({
-          name: f.name,
+          name: f.name || '',
           type: f.type || '',
           floor: f.floor || '',
           description: f.description || '',
-          desc: `${f.type}${f.floor ? ' · ' + f.floor : ''}${f.description ? ' — ' + f.description : ''}`,
+          desc: `${f.type || ''}${f.floor ? ' · ' + f.floor : ''}${f.description ? ' — ' + f.description : ''}`,
           icon: facilityIcon(f.type)
         }))
     }));
 
+    // ASSISTANCE (QA)
     state.QA_DATA = {};
-    allQA.forEach(qa => {
+    assistanceData.forEach(qa => {
       const key = String(qa.building_id);
       if (!state.QA_DATA[key]) state.QA_DATA[key] = [];
-      state.QA_DATA[key].push({ question: qa.question, answer: qa.answer });
+      state.QA_DATA[key].push({
+        question: qa.question || '',
+        answer: qa.answer || ''
+      });
     });
+
   } catch (err) {
     console.error('loadBuildings error:', err);
-    state.BUILDINGS = []; state.QA_DATA = {};
+    state.BUILDINGS = [];
+    state.QA_DATA = {};
   }
 }
 
 export function facilityIcon(type) {
   if (!type) return 'bi-grid';
+
   const t = type.toLowerCase();
+
   if (t.includes('lab')) return 'bi-flask';
   if (t.includes('office')) return 'bi-briefcase';
   if (t.includes('classroom') || t.includes('room')) return 'bi-easel';
@@ -57,5 +71,6 @@ export function facilityIcon(type) {
   if (t.includes('chapel') || t.includes('church')) return 'bi-buildings';
   if (t.includes('computer')) return 'bi-pc-display';
   if (t.includes('toilet') || t.includes('cr')) return 'bi-door-open';
+
   return 'bi-grid';
 }

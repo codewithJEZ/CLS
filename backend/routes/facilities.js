@@ -1,21 +1,7 @@
-/**
- * ============================================================
- *  Campus Locator System — Facilities Routes
- *  backend/routes/facilities.js
- *
- *  Mounted at: /facilities  (in server.js)
- *  GET  /facilities   → return all facilities (with building name)
- *  POST /facilities   → insert a new facility
- * ============================================================
- */
-
 const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
 
-// ── GET /facilities ──────────────────────────────────────────
-// Returns all facilities joined with their building name.
-// The JOIN lets the frontend display "Main Building" instead of just an ID.
 router.get('/', (req, res) => {
   const sql = `
     SELECT
@@ -32,63 +18,33 @@ router.get('/', (req, res) => {
     ORDER BY b.name ASC, f.name ASC
   `;
 
-  db.query(sql, (err, results) => {
+  db.all(sql, [], (err, rows) => {
     if (err) {
-      console.error('❌ GET /facilities error:', err.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch facilities.'
-      });
+      console.error('GET /facilities error:', err.message);
+      return res.status(500).json({ success: false, message: 'Failed to fetch facilities.' });
     }
-
-    return res.status(200).json({
-      success: true,
-      data: results
-    });
+    return res.status(200).json({ success: true, data: rows });
   });
 });
 
-// ── POST /facilities ─────────────────────────────────────────
-// Inserts a new facility.
-// Required body fields: building_id, name, type, floor
-// Optional body fields: description
 router.post('/', (req, res) => {
   const { building_id, name, type, description, floor } = req.body;
 
-  // Validate required fields
   if (!building_id || !name || !type || !floor) {
-    return res.status(400).json({
-      success: false,
-      message: 'Building, name, type, and floor are required.'
-    });
+    return res.status(400).json({ success: false, message: 'Building, name, type, and floor are required.' });
   }
 
-  const sql = `
-    INSERT INTO facilities (building_id, name, type, description, floor)
-    VALUES (?, ?, ?, ?, ?)
-  `;
+  const sql = `INSERT INTO facilities (building_id, name, type, description, floor) VALUES (?, ?, ?, ?, ?)`;
 
-  db.query(sql, [building_id, name, type, description || '', floor], (err, result) => {
+  db.run(sql, [building_id, name, type, description || '', floor], function (err) {
     if (err) {
-      console.error('❌ POST /facilities error:', err.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to save facility.'
-      });
+      console.error('POST /facilities error:', err.message);
+      return res.status(500).json({ success: false, message: 'Failed to save facility.' });
     }
-
-    return res.status(201).json({
-      success: true,
-      message: 'Facility saved successfully.',
-      id: result.insertId
-    });
+    return res.status(201).json({ success: true, message: 'Facility saved successfully.', id: this.lastID });
   });
 });
 
-module.exports = router;
-
-// ── PUT /facilities/:id ──────────────────────────────────────
-// Updates an existing facility.
 router.put('/:id', (req, res) => {
   const { building_id, name, type, description, floor } = req.body;
   const { id } = req.params;
@@ -103,31 +59,31 @@ router.put('/:id', (req, res) => {
     WHERE id = ?
   `;
 
-  db.query(sql, [building_id, name, type, description || '', floor, id], (err, result) => {
+  db.run(sql, [building_id, name, type, description || '', floor, id], function (err) {
     if (err) {
-      console.error('❌ PUT /facilities error:', err.message);
+      console.error('PUT /facilities error:', err.message);
       return res.status(500).json({ success: false, message: 'Failed to update facility.' });
     }
-    if (result.affectedRows === 0) {
+    if (this.changes === 0) {
       return res.status(404).json({ success: false, message: 'Facility not found.' });
     }
     return res.status(200).json({ success: true, message: 'Facility updated successfully.' });
   });
 });
 
-// ── DELETE /facilities/:id ───────────────────────────────────
-// Deletes a facility by ID.
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
 
-  db.query('DELETE FROM facilities WHERE id = ?', [id], (err, result) => {
+  db.run('DELETE FROM facilities WHERE id = ?', [id], function (err) {
     if (err) {
-      console.error('❌ DELETE /facilities error:', err.message);
+      console.error('DELETE /facilities error:', err.message);
       return res.status(500).json({ success: false, message: 'Failed to delete facility.' });
     }
-    if (result.affectedRows === 0) {
+    if (this.changes === 0) {
       return res.status(404).json({ success: false, message: 'Facility not found.' });
     }
     return res.status(200).json({ success: true, message: 'Facility deleted successfully.' });
   });
 });
+
+module.exports = router;

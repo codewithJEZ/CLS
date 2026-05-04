@@ -1,25 +1,22 @@
 /**
  * ============================================================
- *  Campus Locator System — MySQL Connection
+ *  Campus Locator System — SQLite Connection (FIXED)
  *  backend/db.js
  * ============================================================
  */
 
-const mysql = require('mysql2');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-const db = mysql.createConnection({
-  host:     'localhost',
-  user:     'root',
-  password: '',
-  database: 'campus_locator'
-});
+// ✅ automatic path (works local + deploy)
+const dbPath = path.join(__dirname, 'setup.db');
 
-db.connect((err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('❌ Database connection failed:', err.message);
-    return;
+    console.error('❌ SQLite connection failed:', err.message);
+  } else {
+    console.log('✅ Connected to SQLite database');
   }
-  console.log('✅ Connected to MySQL — campus_locator');
 });
 
 module.exports = db;

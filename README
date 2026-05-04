@@ -1,8 +1,0 @@
-LARAGON-connection
-
-backend terminal:
-    npm install express mysql2
-    npm install cors
-    node server.js 
-
-
