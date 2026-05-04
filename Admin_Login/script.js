@@ -105,7 +105,7 @@ async function handleLogin() {
 
   // ── CHANGED: /api/admin/login  →  /admin/login ─────────────
   try {
-    const res  = await fetch('http://localhost:3000/admin/login', {
+    const res  = await fetch('https://cls-production-eba9.up.railway.app/admin/login', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ username, password })
