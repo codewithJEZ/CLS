@@ -10,16 +10,7 @@ import { initSearch, handleSearch, showSearchResults, highlightMatch, registerSe
 import { injectAssistantSearch, setAssistantBuilding, loadQuestionsForBuilding, resetAssistant, initAssistant, registerAssistantCallbacks, populateAssistantSelect } from './modules/assistant.js';
 import { openBuildingModal, showFacilityModal, registerModalCallbacks } from './modules/modal.js';
 import { setStartBuilding, setDestination, drawRoute, clearRoute, resetNavigation, registerNavigationCallbacks } from './map/navigation.js';
-import {
-  registerMapCallbacks,
-  zoomToBuilding,
-  getAllBuildingShapes,
-  getUnifiedBBox,
-  updateMapStatus,
-  applyMapTransform,
-  mapInner,
-  mapContainer,
-} from './map.js';
+import { registerMapCallbacks } from './map.js';
 import { escapeHTML, escapeRegex, triggerRipple } from './utils/dom.js';
 
 /** updateResetVisibility — shows/hides the Reset button based on state */

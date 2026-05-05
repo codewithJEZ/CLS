@@ -122,13 +122,6 @@ export const ROAD_EDGE_LIST = {
 };
 
 
-// Build adjacency list
-export const ROAD_GRAPH = {};
-
-for (let node in ROAD_EDGE_LIST) {
-  ROAD_GRAPH[node] = ROAD_EDGE_LIST[node];
-}
-
 /**
  * BUILDING_ENTRIES
  * Maps each building's SVG ID (uppercase) to an {x,y} exit point
@@ -235,7 +228,7 @@ export function findRoadPath(start, end) {
 
     unvisited.delete(curr);
 
-    for (const nb of (ROAD_GRAPH[curr] || [])) {
+    for (const nb of (ROAD_EDGE_LIST[curr] || [])) {
       if (!unvisited.has(nb)) continue;
       const nc = ROAD_NODES[curr], nn = ROAD_NODES[nb];
       const alt = dist[curr] + Math.hypot(nn.x - nc.x, nn.y - nc.y);
@@ -249,6 +242,8 @@ export function findRoadPath(start, end) {
   while (curr !== undefined) { path.unshift(curr); curr = prev[curr]; }
   return path[0] === start ? path : null;
 }
+
+const DIRECT_DIST_THRESHOLD = 160;
 
 /**
  * getRoadWaypoints(svgIdA, svgIdB)
@@ -267,8 +262,16 @@ export function getRoadWaypoints(svgIdA, svgIdB) {
   const exitA = entryA;
   const exitB = entryB;
 
+  if (Math.hypot(exitB.x - exitA.x, exitB.y - exitA.y) <= DIRECT_DIST_THRESHOLD) {
+    return [exitA, exitB];
+  }
+
   const nodeA = findNearestNode(exitA);
   const nodeB = findNearestNode(exitB);
+
+  if (nodeA === nodeB) {
+    return [exitA, ROAD_NODES[nodeA], exitB];
+  }
 
   const nodePath = findRoadPath(nodeA, nodeB);
   if (!nodePath) return null;

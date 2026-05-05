@@ -136,14 +136,14 @@ html, body {
 
 .search-input {
   width: 100%;
-  height: 36px;
-  padding: 0 36px 0 36px;
+  height: 30px;
+  padding: 0 24px;
   border: 1.5px solid rgba(255,255,255,0.18);
   border-radius: 50px;
   background: rgba(255,255,255,0.12);
   color: var(--white);
   font-family: var(--font-body);
-  font-size: 0.86rem;
+  font-size: 11px;
   transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
   outline: none;
 }
@@ -2421,6 +2421,97 @@ html, body {
   will-change: transform;
   transform-origin: center center;
   transition: transform 0.08s ease;
+}
+
+@media (max-width: 768px) {
+
+  .sidebar-collapse-btn,
+  .sidebar-tab,
+  .building-item-arrow {
+    display: none !important;
+  }
+
+  .map-toolbar-label,
+  .modal-title,
+  .facility-item-name,
+  .building-item-name {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word;
+  }
+
+  .modal-title {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .site-header {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .header-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.1;
+    min-width: 0;
+  }
+
+  .brand-title {
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .full-title {
+    display: block;
+    font-size: 9.5px;
+    line-height: 1.1;
+    max-width: 130px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    color: rgba(255,255,255,0.7);
+    word-break: break-word;
+  }
+
+  .header-center {
+    flex: 1;
+    min-width: 0;
+    max-width: 52%;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search-input {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 28px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search-input::placeholder {
+    font-size: 12px;
+  }
+
 }
 
 #video360Player:active { cursor: grabbing; }

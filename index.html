@@ -44,10 +44,10 @@
   <!-- ═══════════════════════════ HEADER ═══════════════════════════════════ -->
   <header class="site-header">
     <div class="header-left">
-      <img src="../assets/logo.png" alt="School Logo" class="header-logo" onerror="this.style.display='none'"/>
+      <img src="assets/logo.png" alt="School Logo" class="header-logo" onerror="this.style.display='none'"/>
       <div class="header-brand">
         <span class="brand-title">CLS</span>
-        <span class="brand-sub">Campus Locator System</span>
+        <span class="brand-sub full-title">Campus Locator System</span>
       </div>
     </div>
 
@@ -181,9 +181,6 @@
         </div>
 
         <div class="modal-body building-modal-body">
-
-  <!-- DESCRIPTION -->
-  <p id="modalBuildingDesc"></p>
 
   <!-- IMAGE -->
   <div class="building-image-container">
@@ -348,5 +345,14 @@
 </div>
 
 </div>
+<script>
+(function(){
+  var el = document.getElementById('searchInput');
+  if (!el) return;
+  function sync() { el.placeholder = window.innerWidth <= 768 ? 'Search…' : 'Search facilities or buildings…'; }
+  sync();
+  window.addEventListener('resize', sync);
+})();
+</script>
 </body>
 </html>

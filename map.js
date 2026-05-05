@@ -24,12 +24,34 @@ const mapContainer   = document.getElementById('mapContainer');
 const mapStatusLabel = document.getElementById('mapStatusLabel');
 const mapPlaceholder = document.getElementById('mapPlaceholder');
 
+// ── CACHED SVG + DIMENSIONS ───────────────────────────────────
+let _svg = null;
+let _vbW = 0, _vbH = 0;
+let _cW  = 0, _cH  = 0;
+
+function getSvg() { return _svg || (_svg = mapInner.querySelector('svg')); }
+
+function updateContainerSize() {
+  _cW = mapContainer.clientWidth;
+  _cH = mapContainer.clientHeight;
+}
+
+// ── MOBILE DETECTION ─────────────────────────────────────────
+const isMobile = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+
+// ── DRAG THRESHOLD ───────────────────────────────────────────
+const DRAG_THRESHOLD = 6;
+let touchStartX = 0, touchStartY = 0;
+
 // ── ANIMATION STATE ───────────────────────────────────────────
-let velX = 0, velY = 0;          // drag velocity (px / frame at 60 fps)
-let lastMoveTime  = 0;            // timestamp of last pointer-move sample
-let inertiaId     = null;         // rAF handle — inertia coasting loop
-let zoomAnimId    = null;         // rAF handle — smooth zoom loop
-const zoomTarget  = { scale: 1, transX: 0, transY: 0 }; // zoom destination
+let velX = 0, velY = 0;
+let lastMoveTime  = 0;
+let inertiaId     = null;
+let zoomAnimId    = null;
+let _rafPending   = false;
+const zoomTarget  = { scale: 1, transX: 0, transY: 0 };
+
+const MAX_VEL = isMobile ? 28 : 60;
 
 function cancelInertia() {
   if (inertiaId) { cancelAnimationFrame(inertiaId); inertiaId = null; }
@@ -41,13 +63,25 @@ function cancelZoomAnim() {
 }
 
 function setWillChange(active) {
-  const svg = mapInner.querySelector('svg');
+  const svg = getSvg();
   if (svg) svg.style.willChange = active ? 'transform' : 'auto';
 }
 
-// Momentum coasting after a drag release
+function scheduleApplyTransform() {
+  if (_rafPending) return;
+  _rafPending = true;
+  requestAnimationFrame(() => {
+    _rafPending = false;
+    applyMapTransform();
+  });
+}
+
 function startInertia() {
-  const FRICTION = 0.88;
+  if (isMobile && Math.abs(velX) < 1.5 && Math.abs(velY) < 1.5) {
+    setWillChange(false);
+    return;
+  }
+  const FRICTION = isMobile ? 0.82 : 0.88;
   const MIN_VEL  = 0.4;
   function step() {
     velX *= FRICTION;
@@ -57,7 +91,6 @@ function startInertia() {
     state.mapTransX += velX;
     state.mapTransY += velY;
     applyMapTransform();
-    // Stop when slow enough OR when clamping absorbed movement (hit a wall)
     const stuck = Math.abs(state.mapTransX - prevX) < 0.1 &&
                   Math.abs(state.mapTransY - prevY) < 0.1;
     if ((Math.abs(velX) < MIN_VEL && Math.abs(velY) < MIN_VEL) || stuck) {
@@ -74,12 +107,9 @@ function startInertia() {
   }
 }
 
-// Smooth zoom: accumulate the destination across wheel ticks, lerp toward it each frame.
-// Each wheel event shifts zoomTarget further; the animation chases it — this is what
-// makes fast scroll feel fluid instead of stepping.
 function smoothZoomAtPoint(d, px, py) {
   cancelInertia();
-  if (!zoomAnimId) {            // seed targets from live state
+  if (!zoomAnimId) {
     zoomTarget.scale  = state.mapScale;
     zoomTarget.transX = state.mapTransX;
     zoomTarget.transY = state.mapTransY;
@@ -94,16 +124,14 @@ function smoothZoomAtPoint(d, px, py) {
 }
 
 function animateZoom() {
-  const LERP = 0.2;
+  const LERP = isMobile ? 0.25 : 0.2;
   const prevS = state.mapScale;
   const prevX = state.mapTransX;
   const prevY = state.mapTransY;
   state.mapScale  += (zoomTarget.scale  - state.mapScale)  * LERP;
   state.mapTransX += (zoomTarget.transX - state.mapTransX) * LERP;
   state.mapTransY += (zoomTarget.transY - state.mapTransY) * LERP;
-  applyMapTransform();   // clamps state.mapTransX/Y in-place
-  // Convergence check: stop when state barely moves (either close to target,
-  // or pinned to a clamp wall — both register as "done")
+  applyMapTransform();
   const moved = Math.abs(state.mapScale  - prevS) > 0.0004 ||
                 Math.abs(state.mapTransX - prevX) > 0.06   ||
                 Math.abs(state.mapTransY - prevY) > 0.06;
@@ -126,59 +154,65 @@ function handleSVGLoad() {
     .then(svgText => {
       if (mapPlaceholder) mapPlaceholder.remove();
       mapInner.innerHTML = svgText;
-      const svg = mapInner.querySelector('svg');
-      if (!svg) return;
+      _svg = mapInner.querySelector('svg');
+      if (!_svg) return;
 
-      // TASK 1: Remove fixed w/h attrs; let viewBox + CSS drive sizing
-      svg.removeAttribute('width');
-      svg.removeAttribute('height');
-      svg.style.display = 'block';
-      svg.style.transformOrigin = '0 0';
-      svg.style.touchAction = 'manipulation';
-      svg.style.userSelect = 'none';
-      svg.style.webkitUserSelect = 'none';
-      if (!svg.getAttribute('preserveAspectRatio'))
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      _svg.removeAttribute('width');
+      _svg.removeAttribute('height');
+      _svg.style.display = 'block';
+      _svg.style.transformOrigin = '0 0';
+      _svg.style.touchAction = 'pan-x pan-y';
+      _svg.style.userSelect = 'none';
+      _svg.style.webkitUserSelect = 'none';
+      if (!_svg.getAttribute('preserveAspectRatio'))
+        _svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-      autoFitMap(svg);
-      attachBuildingClickEvents(svg);
+      const vb = _svg.viewBox.baseVal;
+      _vbW = vb.width;
+      _vbH = vb.height;
+
+      updateContainerSize();
+      autoFitMap(_svg);
+      attachBuildingClickEvents(_svg);
       updateMapStatus('Map loaded — drag to pan, scroll/pinch to zoom.');
     })
     .catch(() => updateMapStatus('Waiting for map.svg…'));
 }
 
-/**
- * autoFitMap(svg)
- * Scales + centers SVG to fill the container without distortion.
- */
 function autoFitMap(svg) {
   const vb = svg.viewBox.baseVal;
   if (!vb || vb.width === 0 || vb.height === 0) return;
 
-  // Set SVG to render at exactly viewBox pixel dimensions (1px per viewBox unit).
-  // Without this, an absolutely-positioned SVG with no width/height attributes
-  // renders at browser-default size (e.g. 300×150), making the scale math wrong.
   svg.style.width  = vb.width  + 'px';
   svg.style.height = vb.height + 'px';
 
-  const cW = mapContainer.clientWidth;
-  const cH = mapContainer.clientHeight;
-  const scale = Math.min(cW / vb.width, cH / vb.height);
+  updateContainerSize();
+  const scale = Math.min(_cW / vb.width, _cH / vb.height);
   state.mapScale  = scale;
-  state.mapTransX = (cW - vb.width  * scale) / 2;
-  state.mapTransY = (cH - vb.height * scale) / 2;
+  state.mapTransX = (_cW - vb.width  * scale) / 2;
+  state.mapTransY = (_cH - vb.height * scale) / 2;
   applyMapTransform();
 }
 
+let _resizeTimer = null;
 window.addEventListener('resize', () => {
-  const svg = mapInner.querySelector('svg');
-  if (svg) autoFitMap(svg);
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    const prevCW = _cW, prevCH = _cH;
+    updateContainerSize();
+    const svg = getSvg();
+    if (!svg) return;
+    if (Math.abs(_cW - prevCW) > 22 || Math.abs(_cH - prevCH) > 22) {
+      autoFitMap(svg);
+    } else {
+      applyMapTransform();
+    }
+  }, 100);
 });
 
-// ── BUILDING CLICK EVENTS (TASK 7: all shapes) ───────────────
+// ── BUILDING CLICK EVENTS ────────────────────────────────────
 function attachBuildingClickEvents(svg) {
   const shapes = svg.querySelectorAll('.building-shape');
-  console.log('Found building shapes:', shapes.length);
 
   shapes.forEach(el => {
     el.style.cursor = 'pointer';
@@ -186,20 +220,17 @@ function attachBuildingClickEvents(svg) {
 
     function handleTap(e) {
       e.stopPropagation();
+      cancelInertia();
+      cancelZoomAnim();
       if (state.wasDragging) return;
 
       const svgId = el.id.trim().toUpperCase();
       const building = state.BUILDINGS.find(b => b.svgId === svgId);
 
-      console.log('SVG click:', el.id, '→', building ? building.name : 'NOT FOUND');
-
       clearHighlights(svg);
       highlightAllShapes(svg, building ? building.svgId : svgId);
 
-      if (!building) {
-        console.warn(`No DB match for SVG id="${el.id}"`);
-        return;
-      }
+      if (!building) return;
 
       _recordInteraction(building.id);
 
@@ -211,28 +242,20 @@ function attachBuildingClickEvents(svg) {
       _onBuildingClick(building.id);
     }
 
-    // ✔ existing click
     el.addEventListener('click', handleTap);
-
-    // ✔ add this for mobile
-    el.addEventListener('touchend', handleTap);
   });
 }
 
 // ── MAP CONTROLS ──────────────────────────────────────────────
 function initMapControls() {
-  // Zoom buttons: smooth animated zoom toward container center
   document.getElementById('zoomInBtn').addEventListener('click', () => {
-    const r = mapContainer.getBoundingClientRect();
-    smoothZoomAtPoint(0.18, r.width / 2, r.height / 2);
+    smoothZoomAtPoint(0.18, _cW / 2, _cH / 2);
   });
   document.getElementById('zoomOutBtn').addEventListener('click', () => {
-    const r = mapContainer.getBoundingClientRect();
-    smoothZoomAtPoint(-0.18, r.width / 2, r.height / 2);
+    smoothZoomAtPoint(-0.18, _cW / 2, _cH / 2);
   });
   document.getElementById('resetViewBtn').addEventListener('click', resetView);
 
-  // Wheel: each tick shifts zoomTarget further; animation catches up smoothly
   mapContainer.addEventListener('wheel', e => {
     e.preventDefault();
     const rect = mapContainer.getBoundingClientRect();
@@ -247,6 +270,8 @@ function initMapControls() {
     state.isDragging  = true;
     state.wasDragging = false;
     state.dragStart   = { x: e.clientX - state.mapTransX, y: e.clientY - state.mapTransY };
+    touchStartX = e.clientX;
+    touchStartY = e.clientY;
     velX = 0; velY = 0;
     lastMoveTime = performance.now();
     mapContainer.style.cursor = 'grabbing';
@@ -260,18 +285,19 @@ function initMapControls() {
     const dt   = now - lastMoveTime;
     const newX = e.clientX - state.dragStart.x;
     const newY = e.clientY - state.dragStart.y;
-    // Track velocity; ignore stale samples (lag spike or user paused)
     if (dt > 0 && dt < 100) {
-      velX = (newX - state.mapTransX) / dt * 16;
-      velY = (newY - state.mapTransY) / dt * 16;
+      velX = Math.max(-MAX_VEL, Math.min(MAX_VEL, (newX - state.mapTransX) / dt * 16));
+      velY = Math.max(-MAX_VEL, Math.min(MAX_VEL, (newY - state.mapTransY) / dt * 16));
     } else if (dt >= 100) {
-      velX = 0; velY = 0;    // paused → no coasting
+      velX = 0; velY = 0;
     }
-    lastMoveTime      = now;
-    state.wasDragging = true;
-    state.mapTransX   = newX;
-    state.mapTransY   = newY;
-    applyMapTransform();
+    lastMoveTime = now;
+    if (!state.wasDragging && Math.hypot(e.clientX - touchStartX, e.clientY - touchStartY) > DRAG_THRESHOLD) {
+      state.wasDragging = true;
+    }
+    state.mapTransX = newX;
+    state.mapTransY = newY;
+    scheduleApplyTransform();
   });
 
   window.addEventListener('mouseup', () => {
@@ -284,12 +310,14 @@ function initMapControls() {
 
   // ── Touch ──
   mapContainer.addEventListener('touchstart', e => {
-    e.preventDefault();
+    if (e.touches.length > 1) e.preventDefault();
     cancelInertia();
     if (e.touches.length === 1) {
       state.isDragging    = true;
       state.wasDragging   = false;
       state.lastTouchDist = null;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
       state.dragStart = {
         x: e.touches[0].clientX - state.mapTransX,
         y: e.touches[0].clientY - state.mapTransY,
@@ -299,34 +327,36 @@ function initMapControls() {
       setWillChange(true);
     } else if (e.touches.length === 2) {
       state.isDragging    = false;
+      state.wasDragging   = true;
       state.lastTouchDist = touchDist(e.touches);
     }
   }, { passive: false });
 
   mapContainer.addEventListener('touchmove', e => {
-    e.preventDefault();
+    if (state.isDragging || e.touches.length > 1) e.preventDefault();
     if (e.touches.length === 1 && state.isDragging) {
       const now  = performance.now();
       const dt   = now - lastMoveTime;
       const newX = e.touches[0].clientX - state.dragStart.x;
       const newY = e.touches[0].clientY - state.dragStart.y;
       if (dt > 0 && dt < 100) {
-        velX = (newX - state.mapTransX) / dt * 16;
-        velY = (newY - state.mapTransY) / dt * 16;
+        velX = Math.max(-MAX_VEL, Math.min(MAX_VEL, (newX - state.mapTransX) / dt * 16));
+        velY = Math.max(-MAX_VEL, Math.min(MAX_VEL, (newY - state.mapTransY) / dt * 16));
       } else if (dt >= 100) {
         velX = 0; velY = 0;
       }
-      lastMoveTime      = now;
-      state.wasDragging = true;
-      state.mapTransX   = newX;
-      state.mapTransY   = newY;
-      applyMapTransform();
+      lastMoveTime = now;
+      if (!state.wasDragging && Math.hypot(e.touches[0].clientX - touchStartX, e.touches[0].clientY - touchStartY) > DRAG_THRESHOLD) {
+        state.wasDragging = true;
+      }
+      state.mapTransX = newX;
+      state.mapTransY = newY;
+      scheduleApplyTransform();
     } else if (e.touches.length === 2 && state.lastTouchDist !== null) {
       const nd   = touchDist(e.touches);
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const rect = mapContainer.getBoundingClientRect();
-      // Pinch: direct update — follows fingers without smoothing lag
       zoomAtPoint((nd / state.lastTouchDist - 1) * state.mapScale * 0.6, midX - rect.left, midY - rect.top);
       state.lastTouchDist = nd;
     }
@@ -336,11 +366,13 @@ function initMapControls() {
     if (e.touches.length === 0) {
       state.isDragging    = false;
       state.lastTouchDist = null;
-      setTimeout(() => { state.wasDragging = false; }, 50);
+      setTimeout(() => { state.wasDragging = false; }, 80);
       startInertia();
     } else if (e.touches.length === 1) {
       state.lastTouchDist = null;
       state.isDragging    = true;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
       state.dragStart = {
         x: e.touches[0].clientX - state.mapTransX,
         y: e.touches[0].clientY - state.mapTransY,
@@ -353,7 +385,6 @@ function initMapControls() {
 
 function touchDist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
 
-// Direct (non-animated) zoom — pinch gestures only; smoothing would fight the fingers
 function zoomAtPoint(d, px, py) {
   const prev = state.mapScale;
   state.mapScale = Math.min(Math.max(state.mapScale + d, 0.5), 4);
@@ -363,39 +394,39 @@ function zoomAtPoint(d, px, py) {
   applyMapTransform();
 }
 
-// Clamp mapTransX/Y so the map always keeps minOverlap pixels visible in the container.
 function clampTransform() {
-  const svg = mapInner.querySelector('svg');
-  if (!svg) return;
-  const vb = svg.viewBox.baseVal;
-  if (!vb || vb.width === 0) return;
+  if (!_vbW) return;
 
-  const cW = mapContainer.clientWidth;
-  const cH = mapContainer.clientHeight;
-  const svgW = vb.width  * state.mapScale;
-  const svgH = vb.height * state.mapScale;
-  const minOverlap = 80; // px of map that must remain visible inside the container
+  const svgW = _vbW * state.mapScale;
+  const svgH = _vbH * state.mapScale;
+  const minOverlap = 80;
 
-  state.mapTransX = Math.max(minOverlap - svgW, Math.min(cW - minOverlap, state.mapTransX));
-  state.mapTransY = Math.max(minOverlap - svgH, Math.min(cH - minOverlap, state.mapTransY));
+  const minX = minOverlap - svgW;
+  const maxX = _cW - minOverlap;
+  const minY = minOverlap - svgH;
+  const maxY = _cH - minOverlap;
+
+  state.mapTransX = minX > maxX ? (_cW - svgW) / 2 : Math.max(minX, Math.min(maxX, state.mapTransX));
+  state.mapTransY = minY > maxY ? (_cH - svgH) / 2 : Math.max(minY, Math.min(maxY, state.mapTransY));
 }
 
 function applyMapTransform() {
   clampTransform();
-  const svg = mapInner.querySelector('svg');
-  if (svg) svg.style.transform = `translate(${state.mapTransX}px,${state.mapTransY}px) scale(${state.mapScale})`;
+  const svg = getSvg();
+  if (svg) svg.style.transform = `translate3d(${state.mapTransX}px,${state.mapTransY}px,0) scale(${state.mapScale})`;
 }
+
 function resetView() {
-  const svg = mapInner.querySelector('svg');
+  const svg = getSvg();
   if (!svg) return;
   svg.style.transition = 'transform 0.38s cubic-bezier(0.4,0,0.2,1)';
   autoFitMap(svg);
   setTimeout(() => { svg.style.transition = ''; }, 400);
 }
 
-// ── ZOOM TO BUILDING (TASK 2: smooth + centered + all shapes) ─
+// ── ZOOM TO BUILDING ──────────────────────────────────────────
 function zoomToBuilding(id) {
-  const svg = mapInner.querySelector('svg');
+  const svg = getSvg();
   if (!svg) return;
 
   const building = state.BUILDINGS.find(b => b.id === id);
@@ -404,7 +435,6 @@ function zoomToBuilding(id) {
   const shapes = getAllBuildingShapes(svg, building.svgId);
   if (!shapes.length) return;
 
-  // 🔥 unified bbox (multi-shape)
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
   shapes.forEach(el => {
@@ -418,14 +448,11 @@ function zoomToBuilding(id) {
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
 
-  const TARGET_SCALE = 2.2; // 🔥 tweak mo lang to
+  const TARGET_SCALE = 2.2;
 
-  const vpW = mapContainer.clientWidth;
-  const vpH = mapContainer.clientHeight;
-
-  state.mapScale = TARGET_SCALE;
-  state.mapTransX = vpW / 2 - centerX * TARGET_SCALE;
-  state.mapTransY = vpH / 2 - centerY * TARGET_SCALE;
+  state.mapScale  = TARGET_SCALE;
+  state.mapTransX = _cW / 2 - centerX * TARGET_SCALE;
+  state.mapTransY = _cH / 2 - centerY * TARGET_SCALE;
 
   svg.style.transition = 'transform 0.4s ease';
   applyMapTransform();
@@ -471,9 +498,9 @@ function highlightAllShapes(svg, svgId) {
   getAllBuildingShapes(svg, svgId).forEach(el => el.classList.add('highlighted'));
 }
 
-// ── BUILDING CLICK ────────────────────────────────────────────
+// ── BUILDING HIGHLIGHT ────────────────────────────────────────
 function highlightBuilding(id) {
-  const svg = mapInner.querySelector('svg');
+  const svg = getSvg();
   if (!svg) return;
   const b = state.BUILDINGS.find(x => x.id === id);
   if (!b) return;
@@ -494,9 +521,6 @@ export {
   zoomToBuilding,
   getAllBuildingShapes,
   getUnifiedBBox,
-  clearHighlights,
-  highlightAllShapes,
-  highlightBuilding,
   updateMapStatus,
   applyMapTransform,
   mapInner,
