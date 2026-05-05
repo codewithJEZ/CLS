@@ -134,7 +134,7 @@ function handleSVGLoad() {
       svg.removeAttribute('height');
       svg.style.display = 'block';
       svg.style.transformOrigin = '0 0';
-      svg.style.touchAction = 'none';
+      svg.style.touchAction = 'manipulation';
       svg.style.userSelect = 'none';
       svg.style.webkitUserSelect = 'none';
       if (!svg.getAttribute('preserveAspectRatio'))
@@ -179,28 +179,43 @@ window.addEventListener('resize', () => {
 function attachBuildingClickEvents(svg) {
   const shapes = svg.querySelectorAll('.building-shape');
   console.log('Found building shapes:', shapes.length);
+
   shapes.forEach(el => {
     el.style.cursor = 'pointer';
     el.style.pointerEvents = 'bounding-box';
-    el.addEventListener('click', e => {
+
+    function handleTap(e) {
       e.stopPropagation();
       if (state.wasDragging) return;
+
       const svgId = el.id.trim().toUpperCase();
       const building = state.BUILDINGS.find(b => b.svgId === svgId);
+
       console.log('SVG click:', el.id, '→', building ? building.name : 'NOT FOUND');
+
       clearHighlights(svg);
       highlightAllShapes(svg, building ? building.svgId : svgId);
-      if (!building) { console.warn(`No DB match for SVG id="${el.id}"`); return; }
+
+      if (!building) {
+        console.warn(`No DB match for SVG id="${el.id}"`);
+        return;
+      }
+
       _recordInteraction(building.id);
 
-      // ── If user is picking a destination, intercept normal flow ──
       if (state.isPickingDestination) {
         _setDestination(building.id);
-        return;   // skip normal modal
+        return;
       }
 
       _onBuildingClick(building.id);
-    });
+    }
+
+    // ✔ existing click
+    el.addEventListener('click', handleTap);
+
+    // ✔ add this for mobile
+    el.addEventListener('touchend', handleTap);
   });
 }
 
