@@ -9,17 +9,30 @@
  * HOW TO GET COORDINATES:
  *   1. Open map.svg in a browser with DevTools open
  *   2. In console run:
- *        document.querySelector('svg').addEventListener('click', e => {
- *          const pt = svg.createSVGPoint();
- *          pt.x = e.clientX; pt.y = e.clientY;
- *          const svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
- *          console.log(`{ x: ${Math.round(svgPt.x)}, y: ${Math.round(svgPt.y)} },`);
- *        });
- *   3. Click along the road — copy the logged coordinates here.
+ *   const mapContainer = document.getElementById("mapInner");
  *
- * COLORS:
- *   Blue  (#3b82f6) = predefined road route  ← you want this
- *   Gold  (#F6AC02) = fallback straight line  ← means route not yet defined
+ *      mapContainer.addEventListener("click", handleCoords);
+ *       mapContainer.addEventListener("touchstart", handleCoords);
+ *
+ *     function handleCoords(e) {
+ *        const svg = document.querySelector("#mapInner svg");
+ *         if (!svg) return;
+ *
+ *         const pt = svg.createSVGPoint();
+ *
+ *   if (e.touches && e.touches.length > 0) {
+ *      pt.x = e.touches[0].clientX;
+ *       pt.y = e.touches[0].clientY;
+ *      } else {
+ *         pt.x = e.clientX;
+ *          pt.y = e.clientY;
+ *         }
+ *
+ *       const svgPoint = pt.matrixTransform(svg.getScreenCTM().inverse());
+ *
+ *         console.log(`{ x: ${Math.round(svgPoint.x)}, y: ${Math.round(svgPoint.y)} }`);
+ *       }
+ *   3. Click along the road — copy the logged coordinates here.
  *
  * ── HOW TO READ THE KEY ──────────────────────────────────────
  * "ADMIN BUILDING|LIBRARY BUILDING"
@@ -30,29 +43,6 @@
  * The X,Y values below are APPROXIMATE based on the campus map image.
  * You MUST calibrate them against your actual SVG viewBox using the
  * console tool above. Adjust each point to sit on the visible road.
- * ════════════════════════════════════════════════════════════
- */
-/**
- * ════════════════════════════════════════════════════════════
- * CAMPUS ROAD GRAPH — Dijkstra-based routing
- * ════════════════════════════════════════════════════════════
- *
- * All coordinates in SVG viewBox units (0 0 1440 1024).
- * Building centers computed from actual SVG path data.
- *
- * Road network structure (based on campus map image):
- *
- *  S01-S13  South Main Road     y≈668–694  (Main Gate → Gate 8)
- *  N01-N09  North Road          y≈290–460  (Gate 3 → Gate 5)
- *  W01      West Vertical mid   x≈303      (N02 ↔ S03)
- *  G01      Gate3→Admin conn.              (N01 ↔ S03)
- *  M01-M02  Mid Vertical        x≈640      (N05 ↔ S09)
- *  A01-A02  Aud. Vertical       x≈762      (N07 ↔ S12)
- *  X01      Gate8→Gate7 conn.              (S13 ↔ L06)
- *  L01-L06  East Left Vertical  x≈958      (Gate 6 → Gate 7)
- *  T01-T02  East Top Horizontal y≈285–290  (L01 → R01)
- *  C01-C04  East Center Vert.   x≈1085     (horizontal connectors)
- *  R01-R06  East Right Vertical x≈1176     (top → bottom)
  * ════════════════════════════════════════════════════════════
  */
 
@@ -84,43 +74,41 @@ export const ROAD_NODES = {
   X: { x: 1130, y: 448 },
   Y: { x: 1140, y: 340 },
   Z: { x: 1186, y: 679 },
-  A1: { x: 1213, y: 465 }
+  A1: { x: 1213, y: 465 },
 };
-
 
 // ─────────────────────────────────────────
 // ROAD EDGES (connections only where roads exist)
 // ─────────────────────────────────────────
 export const ROAD_EDGE_LIST = {
-  A: ['B', 'E'],
-  B: ['A', 'C','G'],
-  C: ['B', 'D'],
-  D: ['C', 'H'],
-  E: ['F', 'J'],
-  F: ['E', 'G', 'K'],
-  G: ['F', 'B', 'H'],
-  H: ['G','D', 'L'],
-  I: ['J', 'M'],
-  J: ['I', 'E', 'K'],
-  K: ['J', 'L'],
-  L: ['K', 'H', 'O'],
-  M: ['I', 'N', 'R'],
-  N: ['M', 'O', 'P'],
-  O: ['L', 'N', 'Q'],
-  P: ['N', 'Q'],
-  Q: ['O', 'P', 'S'],
-  R: ['M', 'T'],
-  S: ['Q', 'U'],
-  T: ['R', 'U', 'V'],
-  U: ['S', 'T', 'W'],
-  V: ['T', 'Z'],
-  W: ['U', 'Y'],
-  X: ['Y', 'A1'],
-  Y: ['W', 'X'],
-  Z: ['V', 'A1'],
-  A1: ['Z', 'X']
+  A: ["B", "E"],
+  B: ["A", "C", "G"],
+  C: ["B", "D"],
+  D: ["C", "H"],
+  E: ["F", "J"],
+  F: ["E", "G", "K"],
+  G: ["F", "B", "H"],
+  H: ["G", "D", "L"],
+  I: ["J", "M"],
+  J: ["I", "E", "K"],
+  K: ["J", "L"],
+  L: ["K", "H", "O"],
+  M: ["I", "N", "R"],
+  N: ["M", "O", "P"],
+  O: ["L", "N", "Q"],
+  P: ["N", "Q"],
+  Q: ["O", "P", "S"],
+  R: ["M", "T"],
+  S: ["Q", "U"],
+  T: ["R", "U", "V"],
+  U: ["S", "T", "W"],
+  V: ["T", "Z"],
+  W: ["U", "Y"],
+  X: ["Y", "A1"],
+  Y: ["W", "X"],
+  Z: ["V", "A1"],
+  A1: ["Z", "X"],
 };
-
 
 /**
  * BUILDING_ENTRIES
@@ -129,63 +117,78 @@ export const ROAD_EDGE_LIST = {
  * resolved automatically by findNearestNode() at routing time.
  */
 export const BUILDING_ENTRIES = {
-  'UNIVERSITY MUSEUM BUILDING': { x: 162, y: 602 },
-  'COLLEGE OF EDUCATION BUILDING':{ x: 100, y: 400 },
-  'COLLEGE OF EDUCATION BUILDING EXTENSION 1': { x: 238, y: 577 },
-  'GRADUATE SCHOOL BUILDING 2': { x: 309, y: 489 },
-  'GRADUATE SCHOOL BUILDING': { x: 330, y: 470 },
-  'INTEGRATED SCIENCE LABORATORY BUILDING': { x: 365, y: 470 },
-  'PROCUREMENT AND SUPPLY BUILDING': { x: 275, y: 418 },
-  'SECURITY AND GENERAL SERVICES BUILDING': { x: 313, y: 418 },
-  'ELECTRICAL TECHNOLOGY BUILDING': { x: 343, y: 418 },
-  'NSTP BUILDING': { x: 376, y: 408 },
-  'ADMINISTRATION BUILDING': { x: 302, y: 650 },
-  'THREE STOREY ACADEMIC BUILDING 2': { x: 245, y: 663 },
-  'MANAGEMENT INFORMATION SYSTEM BUILDING': { x: 370, y: 530 },
-  'THREE STOREY LEARNING RESOURCE CENTER': { x: 380, y: 635 },
-  'STUDENT SERVICES BUILDING': { x: 500, y: 510 },
-  'OLD BUILDING OF COLLEGE OF ARTS AND SCIENCES': { x: 525, y: 505 },
-  'COMFORT ROOM BUILDING': { x: 540, y: 657 },
-  'GENERAL SHOPROOM BUILDING': { x: 490 , y: 421 },
-  'ICT LABORATORY BUILDING': { x: 465, y: 615 },
-  'COLLEGE OF COMPUTING STUDIES BUILDING': { x: 520, y: 595 },
-  'COLLEGE OF SOCIAL SCIENCES AND PHILOSOPHY BUILDING': { x: 582, y: 657 },
-  'BIDS AND AWARDS COMMITTEE OFFICE': { x: 423, y: 668 },
-  'UNIVERSITY FOOD CENTER': { x: 450, y: 668 },
-  'OCCUPATIONAL SAFETY AND HEALTH OFFICE BUILDING': { x: 455, y: 668 },
-  'CEA MAIN BUILDING': { x: 566, y: 580 },
-  'CEA EXTENSION BUILDING': { x: 566, y: 580 },
-  'IE LABORATORY BUILDING': { x: 670 , y: 555 },
-  'CIVIL ENGINEERING AND MECHANICAL ENGINEERING LABORATORY BUILDING': { x: 661, y: 658 },
-  'MEDICAL AND DENTAL CLINIC': { x: 695, y: 655 },
-  'COLLEGE OF BUSINESS STUDIES BUILDING 1': { x: 771, y: 684 },
-  'ENGINEERING BUILDING 1': { x: 717, y: 620 },
-  'ELECTRICAL ENGINEERING BUILDING': { x: 680, y: 550 },
-  'TECHNICAL VOCATIONAL BUILDING': { x: 678, y: 465 },
-  'MOTORPOOL BUILDING': { x: 420, y: 408 },
-  'COLLEGE OF INDUSTRIAL TECHNOLOGY BUILDING': { x: 539, y: 383 },
-  'FOOD TECHNOLOGY BUILDING ': { x: 621, y: 515 },
-  'INFORMATION AND TECHNOLOGY, COMPUTER ENGINEERING BUILDING': {  x: 660, y: 320 },
-  'UNIVERSITY AUDITORIUM': { x: 740, y: 345 },
-  'JUNIOR HIGH SCHOOL BUILDING': { x: 767, y: 317 },
-  'UNIVERSITY HOSTEL': { x: 849, y: 370 },
-  'EXECUTIVE LOUNGE': { x: 882, y: 360 },
-  'MULTI DISCIPLINARY RESOURCE AND TOURISM BUILDING': { x: 801, y: 491 },
-  'COLLEGE OF BUSINESS STUDIES BUILDING 3': { x: 770, y: 510 },
-  'COLLEGE OF BUSINESS STUDIES BUILDING 2': { x: 820, y: 680 },
-  'COOPERATIVE EDUCATION BUILDING': { x: 847, y: 320 },
-  'MULTI-PURPOSE HALL': { x: 845, y: 320 },
-  'COLLEGE OF EDUCATION BUILDING 3 (EXT LOT)': { x: 1000, y: 285 },
-  'COLLEGE OF ARTS AND SCIENCES BUILDING': { x: 1000, y: 450 },
-  'INTEGRATED RESEARCH, TRAINING PRODUCTION CENTER BUILDING': { x: 928, y: 580 },
-  'INTEGRATED RESEARCH TRAINING AND PRODUCTION CENTER EXTENSION BUILDING': { x: 958, y: 630 },
-  'THREE STOREY HEALTH AND SCIENCES BUILDING': { x: 1053, y: 617 },
-  'PHYSICAL EDUCATION COVERED COURT': { x: 1085, y: 528 },
-  'TRANSPORTATION SERVICES OFFICE BUILDING': { x: 1236, y: 697 },
-  'UNIVERSITY PHYSICAL EDUCATION FACILITIES AND UNIVERSITY POOL': { x: 1289, y: 540 },
-  'DOCTOR ERNESTO NICDAO SPORTS CENTER BUILDING': { x: 1176, y: 350 },
-  'INSTRUCTOR PHYSICAL EDUCATION NEW BUILDING': { x: 1243, y: 628 },
-  'INSTRUCTOR PHYSICAL EDUCATION OLD BUILDING': { x: 1258, y: 304 },
+  "UNIVERSITY MUSEUM BUILDING": { x: 162, y: 602 },
+  "COLLEGE OF EDUCATION BUILDING": { x: 185, y: 590 },
+  "COLLEGE OF EDUCATION BUILDING EXTENSION 1": { x: 238, y: 577 },
+  "GRADUATE SCHOOL BUILDING 2": { x: 297, y: 554 },
+  "GRADUATE SCHOOL BUILDING": { x: 309, y: 506 },
+  "INTEGRATED SCIENCE LABORATORY BUILDING": { x: 401, y: 477 },
+  "PROCUREMENT AND SUPPLY BUILDING": { x: 275, y: 418 },
+  "SECURITY AND GENERAL SERVICES BUILDING": { x: 313, y: 418 },
+  "ELECTRICAL TECHNOLOGY BUILDING": { x: 343, y: 418 },
+  "NSTP BUILDING": { x: 376, y: 408 },
+  "ADMINISTRATION BUILDING": { x: 300, y: 555 },
+  "THREE STOREY ACADEMIC BUILDING 2": { x: 232, y: 661 },
+  "MANAGEMENT INFORMATION SYSTEM BUILDING": { x: 370, y: 530 },
+  "THREE STOREY LEARNING RESOURCE CENTER": { x: 430, y: 620 },
+  "STUDENT SERVICES BUILDING": { x: 500, y: 510 },
+  "OLD BUILDING OF COLLEGE OF ARTS AND SCIENCES": { x: 525, y: 505 },
+  "COMFORT ROOM BUILDING": { x: 540, y: 657 },
+  "GENERAL SHOPROOM BUILDING": { x: 520, y: 395 },
+  "ICT LABORATORY BUILDING": { x: 435, y: 605 },
+  "COLLEGE OF COMPUTING STUDIES BUILDING": { x: 517, y: 594 },
+  "COLLEGE OF SOCIAL SCIENCES AND PHILOSOPHY BUILDING": { x: 590, y: 570 },
+  "BIDS AND AWARDS COMMITTEE OFFICE": { x: 423, y: 668 },
+  "UNIVERSITY FOOD CENTER": { x: 450, y: 668 },
+  "OCCUPATIONAL SAFETY AND HEALTH OFFICE BUILDING": { x: 455, y: 668 },
+  "CEA MAIN BUILDING": { x: 564, y: 583 },
+  "CEA EXTENSION BUILDING": { x: 564, y: 583 },
+  "IE LABORATORY BUILDING": { x: 631, y: 562 },
+  "CIVIL ENGINEERING AND MECHANICAL ENGINEERING LABORATORY BUILDING": {
+    x: 678,
+    y: 590,
+  },
+  "MEDICAL AND DENTAL CLINIC": { x: 695, y: 655 },
+  "COLLEGE OF BUSINESS STUDIES BUILDING 1": { x: 771, y: 684 },
+  "ENGINEERING BUILDING 1": { x: 717, y: 620 },
+  "ELECTRICAL ENGINEERING BUILDING": { x: 588, y: 575 },
+  "TECHNICAL VOCATIONAL BUILDING": { x: 678, y: 465 },
+  "MOTORPOOL BUILDING": { x: 420, y: 408 },
+  "COLLEGE OF INDUSTRIAL TECHNOLOGY BUILDING": { x: 650, y: 385 },
+  "FOOD TECHNOLOGY BUILDING": { x: 660, y: 490 },
+  "INFORMATION AND TECHNOLOGY, COMPUTER ENGINEERING BUILDING": {
+    x: 662,
+    y: 355,
+  },
+  "UNIVERSITY AUDITORIUM": { x: 740, y: 345 },
+  "JUNIOR HIGH SCHOOL BUILDING": { x: 767, y: 317 },
+  "UNIVERSITY HOSTEL": { x: 811, y: 408 },
+  "EXECUTIVE LOUNGE": { x: 849, y: 326 },
+  "MULTI DISCIPLINARY RESOURCE AND TOURISM BUILDING": { x: 795, y: 390 },
+  "COLLEGE OF BUSINESS STUDIES BUILDING 3": { x: 740, y: 551 },
+  "COLLEGE OF BUSINESS STUDIES BUILDING 2": { x: 800, y: 650 },
+  "COOPERATIVE EDUCATION BUILDING": { x: 847, y: 320 },
+  "MULTI-PURPOSE HALL": { x: 889, y: 311 },
+  "COLLEGE OF EDUCATION BUILDING 3 (EXT LOT)": { x: 1036, y: 326 },
+  "COLLEGE OF ARTS AND SCIENCES BUILDING": { x: 945, y: 440 },
+  "INTEGRATED RESEARCH, TRAINING PRODUCTION CENTER BUILDING": {
+    x: 930,
+    y: 570,
+  },
+  "INTEGRATED RESEARCH TRAINING AND PRODUCTION CENTER EXTENSION BUILDING": {
+    x: 920,
+    y: 630,
+  },
+  "THREE STOREY HEALTH AND SCIENCES BUILDING": { x: 1054, y: 670 },
+  "PHYSICAL EDUCATION COVERED COURT": { x: 1150, y: 455 },
+  "TRANSPORTATION SERVICES OFFICE BUILDING": { x: 1236, y: 697 },
+  "UNIVERSITY PHYSICAL EDUCATION FACILITIES AND UNIVERSITY POOL": {
+    x: 1289,
+    y: 540,
+  },
+  "DOCTOR ERNESTO NICDAO SPORTS CENTER BUILDING": { x: 1176, y: 350 },
+  "INSTRUCTOR PHYSICAL EDUCATION NEW BUILDING": { x: 1243, y: 628 },
+  "INSTRUCTOR PHYSICAL EDUCATION OLD BUILDING": { x: 1258, y: 304 },
 };
 
 // ── Nearest road node helper ──────────────────────────────────
@@ -196,7 +199,10 @@ function findNearestNode(point) {
     const dx = node.x - point.x;
     const dy = node.y - point.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < minDist) { minDist = dist; nearest = key; }
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = key;
+    }
   });
   return nearest;
 }
@@ -210,11 +216,12 @@ function findNearestNode(point) {
 export function findRoadPath(start, end) {
   if (start === end) return [start];
 
-  const dist = {}, prev = {};
+  const dist = {},
+    prev = {};
   const nodes = Object.keys(ROAD_NODES);
   const unvisited = new Set(nodes);
 
-  nodes.forEach(n => dist[n] = Infinity);
+  nodes.forEach((n) => (dist[n] = Infinity));
   dist[start] = 0;
 
   while (unvisited.size > 0) {
@@ -228,18 +235,25 @@ export function findRoadPath(start, end) {
 
     unvisited.delete(curr);
 
-    for (const nb of (ROAD_EDGE_LIST[curr] || [])) {
+    for (const nb of ROAD_EDGE_LIST[curr] || []) {
       if (!unvisited.has(nb)) continue;
-      const nc = ROAD_NODES[curr], nn = ROAD_NODES[nb];
+      const nc = ROAD_NODES[curr],
+        nn = ROAD_NODES[nb];
       const alt = dist[curr] + Math.hypot(nn.x - nc.x, nn.y - nc.y);
-      if (alt < dist[nb]) { dist[nb] = alt; prev[nb] = curr; }
+      if (alt < dist[nb]) {
+        dist[nb] = alt;
+        prev[nb] = curr;
+      }
     }
   }
 
   // Reconstruct path
   const path = [];
   let curr = end;
-  while (curr !== undefined) { path.unshift(curr); curr = prev[curr]; }
+  while (curr !== undefined) {
+    path.unshift(curr);
+    curr = prev[curr];
+  }
   return path[0] === start ? path : null;
 }
 
@@ -262,7 +276,9 @@ export function getRoadWaypoints(svgIdA, svgIdB) {
   const exitA = entryA;
   const exitB = entryB;
 
-  if (Math.hypot(exitB.x - exitA.x, exitB.y - exitA.y) <= DIRECT_DIST_THRESHOLD) {
+  if (
+    Math.hypot(exitB.x - exitA.x, exitB.y - exitA.y) <= DIRECT_DIST_THRESHOLD
+  ) {
     return [exitA, exitB];
   }
 
@@ -277,7 +293,7 @@ export function getRoadWaypoints(svgIdA, svgIdB) {
   if (!nodePath) return null;
 
   // Build waypoint list: exitA → road nodes → exitB
-  const pts = [exitA, ...nodePath.map(n => ROAD_NODES[n]), exitB];
+  const pts = [exitA, ...nodePath.map((n) => ROAD_NODES[n]), exitB];
 
   // Remove duplicate consecutive points (within 2px)
   return pts.filter((p, i) => {
