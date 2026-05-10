@@ -275,12 +275,13 @@ function fitRouteInView(svg, points) {
   const scaleH  = (availH * PADDING) / (spanH || 1);
   const TARGET  = Math.min(Math.max(Math.min(scaleW, scaleH), 0.6), 3.0);
 
-  svg.style.transition = 'transform 0.6s cubic-bezier(0.4,0,0.2,1)';
+  const lowEnd = document.body.classList.contains('low-end-device');
+  if (!lowEnd) svg.style.transition = 'transform 0.6s cubic-bezier(0.4,0,0.2,1)';
   state.mapScale  = TARGET;
   state.mapTransX = availW / 2 - midX * TARGET;
   state.mapTransY = availH / 2 - midY * TARGET;
   applyMapTransform();
-  setTimeout(() => { svg.style.transition = ''; }, 650);
+  if (!lowEnd) setTimeout(() => { svg.style.transition = ''; }, 650);
 }
 
 /**
@@ -288,17 +289,14 @@ function fitRouteInView(svg, points) {
  * Injects the CSS animation for the dashed route line once per page.
  */
 function injectRouteStyles() {
-  if (document.getElementById('routeStyles')) return;   // already injected
+  if (document.getElementById('routeStyles')) return;
+  const lowEnd = document.body.classList.contains('low-end-device');
   const style = document.createElement('style');
   style.id = 'routeStyles';
-  style.textContent = `
-    @keyframes routeDash {
-      to { stroke-dashoffset: -52; }
-    }
-    .route-line-animated {
-      animation: routeDash 1.1s linear infinite;
-    }
-  `;
+  style.textContent = lowEnd
+    ? `.route-line-animated { stroke-dasharray: 14 8; }`
+    : `@keyframes routeDash { to { stroke-dashoffset: -52; } }
+       .route-line-animated { animation: routeDash 1.1s linear infinite; }`;
   document.head.appendChild(style);
 }
 

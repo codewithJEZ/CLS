@@ -161,28 +161,25 @@ export function buildSidebarBuildingList(filter) {
       </div>
     `;
 
-    // 🖱 click behavior
-    li.addEventListener('click', () => {
-      _triggerRipple(li);
-
-      facilityList.querySelectorAll('.facility-list-item')
-        .forEach(x => x.classList.remove('active'));
-
-      li.classList.add('active');
-
-      recordInteraction(b.id);
-
-      if (window.innerWidth <= 768) sidebar.classList.add('collapsed');
-
-      zoomToBuilding(b.id);
-      setTimeout(() => _openBuildingModal(b), 420);
-    });
-
     facilityList.appendChild(li);
   });
 }
 
 export function initSidebar() {
+  facilityList.addEventListener('click', e => {
+    const item = e.target.closest('.building-list-item');
+    if (!item) return;
+    const b = state.BUILDINGS.find(x => x.id === item.dataset.buildingId);
+    if (!b) return;
+    _triggerRipple(item);
+    facilityList.querySelectorAll('.facility-list-item').forEach(x => x.classList.remove('active'));
+    item.classList.add('active');
+    recordInteraction(b.id);
+    if (window.innerWidth <= 768) sidebar.classList.add('collapsed');
+    zoomToBuilding(b.id);
+    setTimeout(() => _openBuildingModal(b), 420);
+  });
+
   sidebarCollapseBtn.addEventListener('click', () => {
     sidebar.classList.add('collapsed');
     if (window.innerWidth > 768) sidebarTab.classList.add('visible');

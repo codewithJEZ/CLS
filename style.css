@@ -601,6 +601,7 @@ html, body {
   position: relative;
   touch-action: none;
   background: var(--white);
+  will-change: transform;
 }
 
 .map-container:active { cursor: grabbing; }
@@ -616,12 +617,13 @@ html, body {
   overflow: hidden;
   background: var(--white);
   position: relative;
+  will-change: transform, opacity;
   animation: map-load-in 0.4s 0.25s ease both;
 }
 
 @keyframes map-load-in {
-  from { opacity: 0; transform: scale(0.988); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.988) translateZ(0); }
+  to   { opacity: 1; transform: scale(1) translateZ(0); }
 }
 
 /* SVG inside — transform is applied by JS; size set by JS to viewBox dimensions */
@@ -2515,3 +2517,26 @@ html, body {
 }
 
 #video360Player:active { cursor: grabbing; }
+
+/* ── LOW-END DEVICE — suppress animations & transitions ─────── */
+.low-end-device {
+  --transition: 0s;
+}
+.low-end-device .map-inner {
+  transform: translateZ(0);
+}
+.low-end-device .site-header,
+.low-end-device .sidebar,
+.low-end-device .map-inner,
+.low-end-device .fab-btn,
+.low-end-device .search-results,
+.low-end-device .assistant-search-results,
+.low-end-device .recent-item,
+.low-end-device .modal-card {
+  animation: none !important;
+  transition: none !important;
+}
+.low-end-device .map-inner svg .building-shape.highlighted {
+  animation: none !important;
+  filter: drop-shadow(0 0 8px rgba(246,172,2,0.9)) !important;
+}

@@ -172,7 +172,20 @@ export function setAssistantBuilding(id) {
 }
 
 export function initAssistant() {
-  // Hidden <select> change = fallback sync (e.g. external code sets it directly)
+  questionsList.addEventListener('click', e => {
+    const item = e.target.closest('.question-item');
+    if (!item || !item.dataset.answer) return;
+    questionsList.querySelectorAll('.question-item').forEach(q => q.classList.remove('selected'));
+    item.classList.add('selected');
+    answerArea.style.display = 'none';
+    answerText.textContent = '';
+    requestAnimationFrame(() => {
+      answerText.textContent = item.dataset.answer;
+      answerArea.style.display = 'block';
+      answerArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
   assistantBuildingSelect.addEventListener('change', e => {
     if (e.target.value) {
       setAssistantBuilding(e.target.value);
@@ -199,18 +212,8 @@ export function loadQuestionsForBuilding(id) {
     qs.forEach(qa => {
       const li = document.createElement('li');
       li.className = 'question-item';
+      li.dataset.answer = qa.answer;
       li.innerHTML = `<i class="bi bi-chat-right-dots"></i>${_escapeHTML(qa.question)}`;
-      li.addEventListener('click', () => {
-        questionsList.querySelectorAll('.question-item').forEach(q => q.classList.remove('selected'));
-        li.classList.add('selected');
-        answerArea.style.display = 'none';
-        answerText.textContent = '';
-        requestAnimationFrame(() => {
-          answerText.textContent = qa.answer;
-          answerArea.style.display = 'block';
-          answerArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-      });
       questionsList.appendChild(li);
     });
   }

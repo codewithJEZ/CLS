@@ -39,6 +39,14 @@ function updateContainerSize() {
 // ── MOBILE DETECTION ─────────────────────────────────────────
 const isMobile = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
+// ── LOW-END DEVICE DETECTION ──────────────────────────────────
+const isLowEnd = (
+  /Android/i.test(navigator.userAgent) ||
+  (navigator.deviceMemory   != null && navigator.deviceMemory   <= 2) ||
+  (navigator.hardwareConcurrency != null && navigator.hardwareConcurrency <= 4)
+);
+if (isLowEnd) document.body.classList.add('low-end-device');
+
 // ── DRAG THRESHOLD ───────────────────────────────────────────
 const DRAG_THRESHOLD = 6;
 let touchStartX = 0, touchStartY = 0;
@@ -218,8 +226,7 @@ function attachBuildingClickEvents(svg) {
     el.style.cursor = 'pointer';
     el.style.pointerEvents = 'bounding-box';
 
-    function handleTap(e) {
-      e.stopPropagation();
+    function handleTap() {
       cancelInertia();
       cancelZoomAnim();
       if (state.wasDragging) return;
@@ -242,7 +249,15 @@ function attachBuildingClickEvents(svg) {
       _onBuildingClick(building.id);
     }
 
-    el.addEventListener('click', handleTap);
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
+      handleTap();
+    }, { passive: false });
+
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      handleTap();
+    });
   });
 }
 
@@ -391,7 +406,7 @@ function zoomAtPoint(d, px, py) {
   const ratio = state.mapScale / prev;
   state.mapTransX = px - ratio * (px - state.mapTransX);
   state.mapTransY = py - ratio * (py - state.mapTransY);
-  applyMapTransform();
+  scheduleApplyTransform();
 }
 
 function clampTransform() {

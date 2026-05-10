@@ -193,18 +193,19 @@ export const BUILDING_ENTRIES = {
 
 // ── Nearest road node helper ──────────────────────────────────
 function findNearestNode(point) {
-  let nearest = null;
-  let minDist = Infinity;
-  Object.entries(ROAD_NODES).forEach(([key, node]) => {
-    const dx = node.x - point.x;
-    const dy = node.y - point.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = key;
+  let best = null;
+  let bestDist = Infinity;
+  let bestDegree = 0;
+  for (const [key, node] of Object.entries(ROAD_NODES)) {
+    const dist = Math.hypot(node.x - point.x, node.y - point.y);
+    const degree = (ROAD_EDGE_LIST[key] || []).length;
+    if (dist < bestDist - 10 || (Math.abs(dist - bestDist) <= 10 && degree > bestDegree)) {
+      bestDist = dist;
+      bestDegree = degree;
+      best = key;
     }
-  });
-  return nearest;
+  }
+  return best;
 }
 
 // ── Dijkstra shortest path ────────────────────────────────────
@@ -257,8 +258,6 @@ export function findRoadPath(start, end) {
   return path[0] === start ? path : null;
 }
 
-const DIRECT_DIST_THRESHOLD = 160;
-
 /**
  * getRoadWaypoints(svgIdA, svgIdB)
  * Returns full {x,y} waypoint array for routing from building A to B:
@@ -276,29 +275,42 @@ export function getRoadWaypoints(svgIdA, svgIdB) {
   const exitA = entryA;
   const exitB = entryB;
 
-  if (
-    Math.hypot(exitB.x - exitA.x, exitB.y - exitA.y) <= DIRECT_DIST_THRESHOLD
-  ) {
-    return [exitA, exitB];
-  }
-
   const nodeA = findNearestNode(exitA);
   const nodeB = findNearestNode(exitB);
 
+  let roadPoints;
   if (nodeA === nodeB) {
-    return [exitA, ROAD_NODES[nodeA], exitB];
+    roadPoints = [ROAD_NODES[nodeA]];
+  } else {
+    const nodePath = findRoadPath(nodeA, nodeB);
+    if (!nodePath) return null;
+    roadPoints = nodePath.map((n) => ROAD_NODES[n]);
   }
 
-  const nodePath = findRoadPath(nodeA, nodeB);
-  if (!nodePath) return null;
+  let pts = [exitA, ...roadPoints, exitB];
 
-  // Build waypoint list: exitA → road nodes → exitB
-  const pts = [exitA, ...nodePath.map((n) => ROAD_NODES[n]), exitB];
-
-  // Remove duplicate consecutive points (within 2px)
-  return pts.filter((p, i) => {
+  pts = pts.filter((p, i) => {
     if (i === 0) return true;
     const q = pts[i - 1];
-    return Math.abs(p.x - q.x) > 2 || Math.abs(p.y - q.y) > 2;
+    return Math.hypot(p.x - q.x, p.y - q.y) > 2;
   });
+
+  if (pts.length > 2) {
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p0 = out[out.length - 1];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const v1x = p1.x - p0.x, v1y = p1.y - p0.y;
+      const v2x = p2.x - p1.x, v2y = p2.y - p1.y;
+      const l1 = Math.hypot(v1x, v1y);
+      const l2 = Math.hypot(v2x, v2y);
+      if (l1 > 1 && l2 > 1 && (v1x * v2x + v1y * v2y) / (l1 * l2) >= 0.9962) continue;
+      out.push(p1);
+    }
+    out.push(pts[pts.length - 1]);
+    pts = out;
+  }
+
+  return pts;
 }

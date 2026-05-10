@@ -21,8 +21,9 @@ function init360Viewer() {
   if (_360Inited) return;
   const videoModal = document.getElementById('video360Modal');
   const video      = document.getElementById('video360Player');
+  const source     = document.getElementById('video360Src');
   const close360   = document.getElementById('close360');
-  if (!videoModal || !video || !close360) return;
+  if (!videoModal || !video || !source || !close360) return;
   _360Inited = true;
 
   let isDragging = false, startX = 0, startY = 0, scale = 1, tilt = 0;
@@ -47,14 +48,23 @@ function init360Viewer() {
   const closeAll = () => {
     videoModal.style.display = 'none';
     video.pause();
-    video.currentTime = 0;
+    source.removeAttribute('src');
+    video.load();
     scale = 1; tilt = 0;
-    video.style.transform = 'scale(1) rotateX(0deg)';
+    video.style.transform = '';
   };
 
-  video.addEventListener('mousedown',  e => startDrag(e.clientX, e.clientY));
-  window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
-  window.addEventListener('mouseup',   endDrag);
+  const onMouseMove = e => moveDrag(e.clientX, e.clientY);
+  const onMouseUp   = () => {
+    endDrag();
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  };
+  video.addEventListener('mousedown', e => {
+    startDrag(e.clientX, e.clientY);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
   video.addEventListener('touchstart', e => startDrag(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
   video.addEventListener('touchmove',  e => { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
   video.addEventListener('touchend',   endDrag);
@@ -91,10 +101,9 @@ export function openBuildingModal(building) {
   const video   = document.getElementById('video360Player');
   if (btn360 && source && video) {
     btn360.onclick = () => {
-      source.src = `./assets/360/${building.id}.mp4`;
+      source.setAttribute('src', `./assets/360/${building.id}.mp4`);
       video.load();
       document.getElementById('video360Modal').style.display = 'flex';
-      video.pause();
       video.onloadedmetadata = () => { video.currentTime = 0.1; };
     };
   }

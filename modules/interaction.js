@@ -42,7 +42,6 @@ const CLICK_COOLDOWN = 420;
 
 export function handleBuildingClick(id) {
   if (state.wasDragging) return;
-  if (_touchMoved && state.wasDragging) return;
 
   const now = Date.now();
   if (id === _lastClickId && now - _lastClickTime < CLICK_COOLDOWN) return;
